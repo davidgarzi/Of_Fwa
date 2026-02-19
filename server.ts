@@ -125,10 +125,16 @@ export async function sendEmailWithData(state: any) {
     }
 
     const transporter = nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
             user: "garzinodavide@gmail.com",
             pass: process.env.GMAIL_APP_PASSWORD
+        },
+        tls: {
+            rejectUnauthorized: false,
+            family: 4 // forza IPv4
         }
     });
 
