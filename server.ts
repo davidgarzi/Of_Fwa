@@ -5,16 +5,10 @@ import _express from "express";
 import _dotenv from "dotenv";
 import _cors from "cors";
 import _fileUpload from "express-fileupload";
-import _streamifier from "streamifier";
-import _bcrypt from "bcryptjs";
-import _jwt from "jsonwebtoken";
 import axios from 'axios';
-import crypto from 'crypto';
-import nodemailer from "nodemailer";
 import fs from "fs-extra";
 import path from "path";
 import { google } from "googleapis";
-import { Readable } from "stream";
 
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
@@ -23,19 +17,11 @@ const connectionString: string = process.env.connectionStringAtlas;
 
 // Lettura delle password e parametri fondamentali
 _dotenv.config({ "path": ".env" });
-const { RestClientV5 } = require('bybit-api');
-
-const PRIVATE_KEY = _fs.readFileSync("./keys/privateKey.pem", "utf8");
-const CERTIFICATE = _fs.readFileSync("./keys/certificate.crt", "utf8");
-const ENCRYPTION_KEY = _fs.readFileSync("./keys/encryptionKey.txt", "utf8");
-const CREDENTIALS = { "key": PRIVATE_KEY, "cert": CERTIFICATE };
 const app = _express();
 
 // Creazione ed avvio del server
 // app è il router di Express, si occupa di tutta la gestione delle richieste http
 const PORT: number = parseInt(process.env.PORT);
-let API_KEY_BYBIT = process.env.API_KEY_BYBIT;
-let SECRET_API_KEY_BYBIT = process.env.SECRET_API_KEY_BYBIT;
 let paginaErrore;
 const server = _http.createServer(app);
 // Il secondo parametro facoltativo ipAddress consente di mettere il server in ascolto su una delle interfacce della macchina, se non lo metto viene messo in ascolto su tutte le interfacce (3 --> loopback e 2 di rete)
@@ -482,82 +468,6 @@ app.get("/api/telegram/info", async (req: any, res: any) => {
 //********************************************************************************************//
 // Fine codice Telegram Bot
 //********************************************************************************************//
-//********************************************************************************************//
-// Chiamata a MongoDB
-//********************************************************************************************//
-async function analisi(chatId: any) {
-
-    const client = new MongoClient(connectionString);
-    await client.connect();
-
-    let collection = client.db(DBNAME).collection("Trades");
-
-    // ritorno la Promise
-    let rq = collection.find({}).toArray();
-
-    return rq
-        .then((data) => {
-
-            let vinti = 0;
-            let persi = 0;
-
-            data.forEach(t => {
-                if (t.Vinto === true) vinti++;
-                if (t.Perso === true) persi++;
-            });
-
-            return {
-                totale: data.length,
-                vinti,
-                persi
-            };
-        })
-        .catch((err) => {
-            throw new Error("Errore esecuzione query: " + err);
-        })
-        .finally(() => client.close());
-}
-
-function creaRecord(record, tipo) {
-
-    const client = new MongoClient(connectionString);
-
-    return client.connect()
-        .then(() => {
-
-            let collection = client.db(DBNAME).collection("Trades");
-
-            // Preparo il documento da salvare
-            let doc = {
-                Operazione: "ETHUSDT",          // se vuoi lo puoi passare da fuori
-                Vinto: tipo === "vinto" ? record === true : false,
-                Perso: tipo === "perso" ? record === true : false
-            };
-
-            // Inserimento nel DB
-            return collection.insertOne(doc);
-        })
-        .then((result) => {
-
-            // Ritorno il documento appena salvato
-            return {
-                _id: result.insertedId,
-                Operazione: "ETHUSDT",
-                Vinto: tipo === "vinto" ? record === true : false,
-                Perso: tipo === "perso" ? record === true : false
-            };
-        })
-        .catch((err) => {
-            throw new Error("Errore inserimento operazione: " + err);
-
-        })
-        .finally(() => client.close());
-}
-
-//********************************************************************************************//
-// Fine chiamata a MongoDB
-//********************************************************************************************//
-
 //********************************************************************************************//
 // Default route e gestione degli errori
 //********************************************************************************************//
