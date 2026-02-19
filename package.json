@@ -8,24 +8,18 @@
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "bybit-api": "^4.4.0",
-    "cloudinary": "^2.9.0",
+    "cloudinary": "^1.41.2",
     "colors": "^1.4.0",
-    "configstore": "^8.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-fileupload": "^1.4.3",
-    "fs": "^0.0.1-security",
-    "fs-extra": "^11.3.3",
-    "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.2",
     "mime": "^3.0.0",
     "mongodb": "^6.1.0",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^6.9.13",
+    "nodemon": "^3.0.1",
     "openai": "^4.44.0",
-    "path": "^0.12.7",
-    "pipeline": "^0.1.3",
-    "promisify": "^0.0.3",
     "socket.io": "^4.7.5",
     "streamifier": "^0.1.1",
     "ts-node": "^10.9.1",
@@ -41,9 +35,5 @@
     "Mongo"
   ],
   "author": "Corneanu George Alexandru",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/fs-extra": "^11.0.4",
-    "nodemon": "^3.1.11"
-  }
+  "license": "ISC"
 }

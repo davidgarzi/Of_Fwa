@@ -6,9 +6,9 @@ import _dotenv from "dotenv";
 import _cors from "cors";
 import _fileUpload from "express-fileupload";
 import axios from 'axios';
-import fs from "fs-extra";
+//import fs from "fs-extra";
 import path from "path";
-import { google } from "googleapis";
+//import { google } from "googleapis";
 import { Transform, pipeline } from "stream";
 import { promisify } from "util";
 
