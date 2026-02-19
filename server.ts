@@ -201,6 +201,21 @@ async function handleTelegramUpdate(update: any) {
         if (!userStates[chatId]) userStates[chatId] = {};
         const state = userStates[chatId];
 
+        // Funzione helper per rimuovere bottoni e messaggio
+        const removeInlineButtons = async (msg: any) => {
+            if (!msg) return;
+            await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
+                chat_id: msg.chat.id,
+                message_id: msg.message_id,
+                reply_markup: {}
+            });
+            await axios.post(`${TELEGRAM_API}/editMessageText`, {
+                chat_id: msg.chat.id,
+                message_id: msg.message_id,
+                text: "" // rimuove anche la scritta
+            });
+        };
+
         /*
         ===========================
         CLICK PULSANTI (callback_query)
@@ -210,24 +225,15 @@ async function handleTelegramUpdate(update: any) {
             const callbackQuery = update.callback_query;
             const data = callbackQuery.data;
 
-            // ✅ Stoppa il loading del bottone
-            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
-                callback_query_id: callbackQuery.id
-            });
+            // Rimuovo bottoni e testo vecchio
+            await removeInlineButtons(callbackQuery.message);
 
-            // Nasconde i pulsanti del messaggio cliccato
-            if (callbackQuery.message) {
-                await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
-                    chat_id: callbackQuery.message.chat.id,
-                    message_id: callbackQuery.message.message_id,
-                    reply_markup: {} // rimuove i pulsanti
-                });
-            }
+            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
 
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
             if (data === "preverifica") {
                 state.tipo = "PREVERIFICA";
-                await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli azienda:",
                     reply_markup: {
@@ -237,6 +243,7 @@ async function handleTelegramUpdate(update: any) {
                         ]
                     }
                 });
+                return;
             }
 
             // STEP 2 - SCELTA AZIENDA
@@ -244,6 +251,7 @@ async function handleTelegramUpdate(update: any) {
                 state.azienda = data;
                 state.step = "cliente";
                 await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
+                return;
             }
 
             // CONFERMA POSIZIONE
@@ -252,8 +260,27 @@ async function handleTelegramUpdate(update: any) {
                 state.fotoCount = 0;
                 state.foto = [];
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
+                return;
             } else if (data === "posizione_no") {
+                state.step = "posizione";
                 await sendTelegramMessage(chatId, "Reinvia la posizione corretta.");
+                return;
+            }
+
+            // START AGAIN
+            else if (data === "start_again") {
+                delete userStates[chatId];
+                const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                    chat_id: chatId,
+                    text: "Scegli operazione:",
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "PREVERIFICA", callback_data: "preverifica" }],
+                            [{ text: "ATTIVAZIONE", callback_data: "attivazione" }]
+                        ]
+                    }
+                });
+                return;
             }
 
             return;
@@ -264,7 +291,6 @@ async function handleTelegramUpdate(update: any) {
         MESSAGGI TESTO / POSIZIONE / FOTO
         ===========================
         */
-
         const text = update.message?.text || "";
 
         // START
@@ -332,7 +358,7 @@ async function handleTelegramUpdate(update: any) {
             });
 
             // Chiedo conferma
-            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+            const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
                 reply_markup: {
@@ -387,6 +413,7 @@ async function handleTelegramUpdate(update: any) {
         console.error("Errore handleTelegramUpdate:", error.response?.data || error.message);
     }
 }
+
 
 // Endpoint Webhook — riceve aggiornamenti da Telegram
 app.post("/telegram/webhook", async (req: any, res: any) => {
