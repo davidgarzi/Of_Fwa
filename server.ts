@@ -10,6 +10,9 @@ import _bcrypt from "bcryptjs";
 import _jwt from "jsonwebtoken";
 import axios from 'axios';
 import crypto from 'crypto';
+import nodemailer from "nodemailer";
+import fs from "fs-extra";
+import path from "path";
 
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
@@ -86,6 +89,82 @@ app.use("/", (req: any, res: any, next: any) => {
 });
 
 //********************************************************************************************//
+// Inizio NodeMailer
+//********************************************************************************************//
+
+// Scarica foto da Telegram
+async function downloadTelegramFile(fileId: string, token: string, destFolder: string) {
+    try {
+        const res = await axios.get(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`);
+        const filePath = res.data.result.file_path;
+        const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
+        const fileName = path.join(destFolder, path.basename(filePath));
+        const writer = fs.createWriteStream(fileName);
+        const response = await axios.get(url, { responseType: "stream" });
+        response.data.pipe(writer);
+        await new Promise((resolve, reject) => {
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+        });
+        return fileName;
+    } catch (err: any) {
+        console.error("Errore download foto:", err.message);
+        return null;
+    }
+}
+
+// Invia mail completa
+export async function sendEmailWithData(state: any) {
+    const destFolder = path.join(__dirname, "temp_photos");
+    await fs.ensureDir(destFolder);
+
+    const attachments: any[] = [];
+    for (let i = 0; i < state.foto.length; i++) {
+        const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
+        if (filePath) attachments.push({ filename: `foto_${i + 1}.jpg`, path: filePath });
+    }
+
+    const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: "garzinodavide@gmail.com",
+            pass: process.env.GMAIL_APP_PASSWORD
+        }
+    });
+
+    const subject = `PREVERIFICA - ${state.cliente}`;
+    const text = `
+Posizione:
+Lat: ${state.lat}, Lng: ${state.lng}
+
+Segnale: ${state.segnale}
+
+Note: ${state.note}
+
+Preverifica di: ${state.azienda}
+`;
+
+    try {
+        await transporter.sendMail({
+            from: "garzinodavide@gmail.com",
+            to: "garzinodavide@gmail.com",
+            subject,
+            text,
+            attachments
+        });
+        console.log("✅ Mail inviata con foto scaricate!");
+    } catch (err: any) {
+        console.error("❌ Errore invio mail:", err.message);
+    }
+
+    await fs.emptyDir(destFolder);
+}
+
+//********************************************************************************************//
+// Fine NodeMailer
+//********************************************************************************************//
+
+//********************************************************************************************//
 // Inizio codice specifico delle API Telegram Bot
 //********************************************************************************************//
 
@@ -109,30 +188,27 @@ async function sendTelegramMessage(chatId: string, text: string) {
 const userStates: any = {};
 
 async function handleTelegramUpdate(update: any) {
-
     try {
+        const chatId = update.message?.chat?.id || update.callback_query?.message?.chat?.id;
+        if (!chatId) return;
+
+        if (!userStates[chatId]) userStates[chatId] = {};
+        const state = userStates[chatId];
 
         /*
-        =====================================
-        👉 CLICK PULSANTI (callback_query)
-        =====================================
+        ===========================
+        CLICK PULSANTI (callback_query)
+        ===========================
         */
         if (update.callback_query) {
-
             const callbackQuery = update.callback_query;
-            const chatId = callbackQuery.message.chat.id;
             const data = callbackQuery.data;
 
-            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
-                callback_query_id: callbackQuery.id
-            });
+            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
 
-            if (!userStates[chatId]) userStates[chatId] = {};
-
-            // STEP 1
+            // STEP 1 - PREVERIFICA / ATTIVAZIONE
             if (data === "preverifica") {
-                userStates[chatId].tipo = "PREVERIFICA";
-
+                state.tipo = "PREVERIFICA";
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli azienda:",
@@ -145,54 +221,37 @@ async function handleTelegramUpdate(update: any) {
                 });
             }
 
-            // STEP 2
+            // STEP 2 - SCELTA AZIENDA
             else if (data === "comino" || data === "bf_impianti") {
-
-                userStates[chatId].azienda = data;
-                userStates[chatId].step = "segnale";
-
-                await sendTelegramMessage(chatId, "Inserisci il segnale riscontrato:");
+                state.azienda = data;
+                state.step = "cliente";
+                await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
             }
 
             // CONFERMA POSIZIONE
             else if (data === "posizione_si") {
-
-                userStates[chatId].step = "foto";
-                userStates[chatId].fotoCount = 0;
-                userStates[chatId].foto = [];
-
+                state.step = "foto";
+                state.fotoCount = 0;
+                state.foto = [];
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
-            }
-
-            else if (data === "posizione_no") {
-
+            } else if (data === "posizione_no") {
                 await sendTelegramMessage(chatId, "Reinvia la posizione corretta.");
             }
 
             return;
         }
 
-
         /*
-        =====================================
-        👉 MESSAGGI NORMALI
-        =====================================
+        ===========================
+        MESSAGGI TESTO / POSIZIONE / FOTO
+        ===========================
         */
-        if (!update.message) return;
 
-        const chatId = update.message.chat.id;
+        const text = update.message?.text || "";
 
-        if (!userStates[chatId]) userStates[chatId] = {};
-
-        const state = userStates[chatId];
-
-        /*
-        ========= START =========
-        */
-        if (update.message.text === "/start") {
-
-            userStates[chatId] = {}; // reset
-
+        // START
+        if (text === "/start") {
+            userStates[chatId] = {};
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: "Scegli operazione:",
@@ -203,30 +262,28 @@ async function handleTelegramUpdate(update: any) {
                     ]
                 }
             });
-
             return;
         }
 
+        // NOME CLIENTE
+        if (state.step === "cliente" && text) {
+            state.cliente = text;
+            state.step = "segnale";
+            await sendTelegramMessage(chatId, "Inserisci il segnale riscontrato:");
+            return;
+        }
 
-        /*
-        ========= SEGNALE =========
-        */
-        if (state.step === "segnale" && update.message.text) {
-
-            state.segnale = update.message.text;
+        // SEGNALE
+        if (state.step === "segnale" && text) {
+            state.segnale = text;
             state.step = "note";
-
             await sendTelegramMessage(chatId, "Inserisci le note:");
             return;
         }
 
-
-        /*
-        ========= NOTE =========
-        */
-        if (state.step === "note" && update.message.text) {
-
-            state.note = update.message.text;
+        // NOTE
+        if (state.step === "note" && text) {
+            state.note = text;
             state.step = "posizione";
 
             await sendTelegramMessage(chatId, "Sto recuperando la posizione... 📍");
@@ -240,78 +297,78 @@ async function handleTelegramUpdate(update: any) {
                     one_time_keyboard: true
                 }
             });
-
             return;
         }
 
-
-        /*
-        ========= POSIZIONE =========
-        */
+        // POSIZIONE
         if (update.message.location) {
+            state.lat = update.message.location.latitude;
+            state.lng = update.message.location.longitude;
+            state.step = "conferma_posizione";
 
-    state.lat = update.message.location.latitude;
-    state.lng = update.message.location.longitude;
+            // Rimuovo pulsante invio posizione
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: "Posizione ricevuta ✅",
+                reply_markup: { remove_keyboard: true }
+            });
 
-    state.step = "conferma_posizione";
-
-    // 🔥 RIMUOVE IL PULSANTE "INVIA POSIZIONE"
-    await axios.post(`${TELEGRAM_API}/sendMessage`, {
-        chat_id: chatId,
-        text: "Posizione ricevuta ✅",
-        reply_markup: {
-            remove_keyboard: true
+            // Chiedo conferma
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "SI", callback_data: "posizione_si" }],
+                        [{ text: "NO", callback_data: "posizione_no" }]
+                    ]
+                }
+            });
+            return;
         }
-    });
 
-    // Ora chiede conferma con inline keyboard
-    await axios.post(`${TELEGRAM_API}/sendMessage`, {
-        chat_id: chatId,
-        text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "SI", callback_data: "posizione_si" }],
-                [{ text: "NO", callback_data: "posizione_no" }]
-            ]
-        }
-    });
-
-    return;
-}
-
-
-        /*
-        ========= FOTO =========
-        */
+        // FOTO
         if (state.step === "foto" && update.message.photo) {
-
             const photos = update.message.photo;
             const fileId = photos[photos.length - 1].file_id;
-
             state.foto.push(fileId);
             state.fotoCount++;
 
             if (state.fotoCount < 3) {
                 await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
             } else {
-
                 await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
 
-                console.log("DATI SALVATI:", state);
+                // INVIO MAIL
+                await sendEmailWithData(state);
 
-                delete userStates[chatId]; // reset
+                // Reset stato
+                delete userStates[chatId];
+
+                // Pulsante START per ricominciare
+                await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                    chat_id: chatId,
+                    text: "Vuoi iniziare una nuova procedura?",
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "START", callback_data: "start_again" }]
+                        ]
+                    }
+                });
             }
+            return;
+        }
 
+        // RISPOSTA GENERICA
+        if (text.toLowerCase().includes("ciao")) {
+            await sendTelegramMessage(chatId, "Ciao anche a te! 😊");
             return;
         }
 
     } catch (error: any) {
-        console.error("Errore:", error.response?.data || error.message);
+        console.error("Errore handleTelegramUpdate:", error.response?.data || error.message);
     }
 }
-
-
-
 
 // Endpoint Webhook — riceve aggiornamenti da Telegram
 app.post("/telegram/webhook", async (req: any, res: any) => {
