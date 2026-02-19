@@ -141,15 +141,11 @@ export async function sendEmailWithData(state: any) {
     // Configurazione nodemailer con Gmail App Password
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-        port: 465,
-        secure: true, // SSL
+        port: 587,
+        secure: false, // STARTTLS
         auth: {
             user: "garzinodavide@gmail.com",
             pass: process.env.GMAIL_APP_PASSWORD
-        },
-        tls: {
-            rejectUnauthorized: false,
-            family: 4 // forza IPv4
         }
     });
 
@@ -506,8 +502,8 @@ function creaRecord(record, tipo) {
             // Preparo il documento da salvare
             let doc = {
                 Operazione: "ETHUSDT",          // se vuoi lo puoi passare da fuori
-                Vinto:  tipo === "vinto" ? record === true : false,
-                Perso:  tipo === "perso" ? record === true : false
+                Vinto: tipo === "vinto" ? record === true : false,
+                Perso: tipo === "perso" ? record === true : false
             };
 
             // Inserimento nel DB
