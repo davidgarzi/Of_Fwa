@@ -17,6 +17,7 @@
     "express-fileupload": "^1.4.3",
     "fs": "^0.0.1-security",
     "fs-extra": "^11.3.3",
+    "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.2",
     "mime": "^3.0.0",
     "mongodb": "^6.1.0",

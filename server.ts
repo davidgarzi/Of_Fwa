@@ -13,6 +13,7 @@ import crypto from 'crypto';
 import nodemailer from "nodemailer";
 import fs from "fs-extra";
 import path from "path";
+import { google } from "googleapis";
 
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
@@ -117,40 +118,40 @@ async function downloadTelegramFile(fileId: string, token: string, destFolder: s
     }
 }
 
-// Funzione principale per inviare la mail
+// Funzione per inviare mail usando Gmail API
 export async function sendEmailWithData(state: any) {
     const destFolder = path.join(__dirname, "temp_photos");
     await fs.ensureDir(destFolder);
 
+    // Scarico foto da Telegram (come prima)
     const attachments: any[] = [];
-
     for (let i = 0; i < state.foto.length; i++) {
-        const filePath = await downloadTelegramFile(
-            state.foto[i],
-            process.env.TELEGRAM_BOT_TOKEN!,
-            destFolder
-        );
-        if (filePath) {
-            attachments.push({
-                filename: `foto_${i + 1}.jpg`,
-                path: filePath
-            });
-        }
+        const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
+        if (filePath) attachments.push(filePath);
     }
 
-    // Configurazione nodemailer con Gmail App Password
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // STARTTLS
-        auth: {
-            user: "garzinodavide@gmail.com",
-            pass: process.env.GMAIL_APP_PASSWORD
-        }
-    });
+    // Autenticazione Gmail API
+    const oAuth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+        process.env.GMAIL_REDIRECT_URI
+    );
+    oAuth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
 
-    const subject = `PREVERIFICA - ${state.cliente}`;
-    const text = `
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    // Creo il messaggio raw
+    let emailLines: string[] = [];
+    emailLines.push(`From: "Davide" <${process.env.GMAIL_USER}>`);
+    emailLines.push(`To: ${process.env.GMAIL_USER}`);
+    emailLines.push(`Subject: PREVERIFICA - ${state.cliente}`);
+    emailLines.push(`MIME-Version: 1.0`);
+    emailLines.push(`Content-Type: multipart/mixed; boundary="boundary123"`);
+    emailLines.push(``);
+    emailLines.push(`--boundary123`);
+    emailLines.push(`Content-Type: text/plain; charset="UTF-8"`);
+    emailLines.push(``);
+    emailLines.push(`
 Posizione:
 Lat: ${state.lat}, Lng: ${state.lng}
 
@@ -159,24 +160,36 @@ Segnale: ${state.segnale}
 Note: ${state.note}
 
 Preverifica di: ${state.azienda}
-`;
+`);
+
+    // Allegati
+    for (let i = 0; i < attachments.length; i++) {
+        const fileContent = fs.readFileSync(attachments[i]).toString("base64");
+        emailLines.push(`--boundary123`);
+        emailLines.push(`Content-Type: image/jpeg; name="foto_${i + 1}.jpg"`);
+        emailLines.push(`Content-Transfer-Encoding: base64`);
+        emailLines.push(`Content-Disposition: attachment; filename="foto_${i + 1}.jpg"`);
+        emailLines.push(``);
+        emailLines.push(fileContent);
+    }
+
+    emailLines.push(`--boundary123--`);
+
+    const raw = Buffer.from(emailLines.join("\r\n")).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 
     try {
-        await transporter.sendMail({
-            from: "garzinodavide@gmail.com",
-            to: "garzinodavide@gmail.com",
-            subject,
-            text,
-            attachments
+        await gmail.users.messages.send({
+            userId: "me",
+            requestBody: {
+                raw
+            }
         });
-        console.log("✅ Mail inviata con foto scaricate!");
+        console.log("✅ Mail inviata via Gmail API!");
     } catch (err: any) {
         console.error("❌ Errore invio mail:", err);
     }
 
-    // Pulizia cartella temporanea
     await fs.emptyDir(destFolder);
-    console.log("🗑️ Cartella temporanea pulita");
 }
 
 
