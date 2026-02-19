@@ -202,7 +202,7 @@ async function handleTelegramUpdate(update: any) {
         const state = userStates[chatId];
 
         /* ===========================
-           CLICK PULSANTI (callback_query)
+           CALLBACK QUERY
         =========================== */
         if (update.callback_query) {
             const callbackQuery = update.callback_query;
@@ -210,9 +210,29 @@ async function handleTelegramUpdate(update: any) {
 
             await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
 
+            // Funzione per nascondere il pulsante cliccato
+            async function disableButton(messageId: number, chatId: number, callbackDataToRemove: string) {
+                const message = callbackQuery.message;
+                if (!message || !message.reply_markup?.inline_keyboard) return;
+
+                const newKeyboard = message.reply_markup.inline_keyboard.map(row =>
+                    row.map(button =>
+                        button.callback_data === callbackDataToRemove ? { ...button, text: `${button.text} ✅`, callback_data: "disabled" } : button
+                    )
+                );
+
+                await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
+                    chat_id: chatId,
+                    message_id: messageId,
+                    reply_markup: { inline_keyboard: newKeyboard }
+                });
+            }
+
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
             if (data === "preverifica") {
                 state.tipo = "PREVERIFICA";
+                await disableButton(callbackQuery.message.message_id, chatId, "preverifica");
+
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli azienda:",
@@ -229,6 +249,7 @@ async function handleTelegramUpdate(update: any) {
             else if (data === "comino" || data === "bf_impianti") {
                 state.azienda = data;
                 state.step = "cliente";
+                await disableButton(callbackQuery.message.message_id, chatId, data);
                 await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
             }
 
@@ -237,9 +258,18 @@ async function handleTelegramUpdate(update: any) {
                 state.step = "foto";
                 state.fotoCount = 0;
                 state.foto = [];
+                await disableButton(callbackQuery.message.message_id, chatId, data);
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
             } else if (data === "posizione_no") {
+                await disableButton(callbackQuery.message.message_id, chatId, data);
                 await sendTelegramMessage(chatId, "Reinvia la posizione corretta.");
+            }
+
+            // Pulsante START dopo fine procedura
+            else if (data === "start_again") {
+                await disableButton(callbackQuery.message.message_id, chatId, data);
+                userStates[chatId] = {};
+                await sendTelegramMessage(chatId, "Procedura ricominciata. Scegli operazione:");
             }
 
             return;
@@ -307,14 +337,12 @@ async function handleTelegramUpdate(update: any) {
             state.lng = update.message.location.longitude;
             state.step = "conferma_posizione";
 
-            // Rimuovo pulsante invio posizione
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: "Posizione ricevuta ✅",
                 reply_markup: { remove_keyboard: true }
             });
 
-            // Chiedo conferma
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
@@ -328,25 +356,25 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
 
-        // FOTO
+        // FOTO - gestione singola o multipla
         if (state.step === "foto" && update.message.photo) {
             const photos = update.message.photo;
-            const fileId = photos[photos.length - 1].file_id;
-            state.foto.push(fileId);
-            state.fotoCount++;
+            // prendo tutte le foto ricevute contemporaneamente
+            for (let i = 0; i < photos.length; i++) {
+                const fileId = photos[i].file_id;
+                state.foto.push(fileId);
+                state.fotoCount++;
+
+                if (state.fotoCount >= 3) break;
+            }
 
             if (state.fotoCount < 3) {
                 await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
             } else {
                 await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
-
-                // INVIO MAIL
                 await sendEmailWithData(state);
-
-                // Reset stato
                 delete userStates[chatId];
 
-                // Pulsante START per ricominciare
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Vuoi iniziare una nuova procedura?",
@@ -370,6 +398,7 @@ async function handleTelegramUpdate(update: any) {
         console.error("Errore handleTelegramUpdate:", error.response?.data || error.message);
     }
 }
+
 
 
 
