@@ -106,15 +106,16 @@ async function sendTelegramMessage(chatId: string, text: string) {
     }
 }
 
-// Funzione per gestire i messaggi in arrivo da Telegram (via webhook)
+const userStates: any = {};
+
 async function handleTelegramUpdate(update: any) {
 
     try {
 
         /*
-        ==========================
-        👉 1️⃣ CLICK SUI PULSANTI
-        ==========================
+        =====================================
+        👉 CLICK PULSANTI (callback_query)
+        =====================================
         */
         if (update.callback_query) {
 
@@ -122,17 +123,50 @@ async function handleTelegramUpdate(update: any) {
             const chatId = callbackQuery.message.chat.id;
             const data = callbackQuery.data;
 
-            // Stoppa il loading del bottone
             await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
                 callback_query_id: callbackQuery.id
             });
 
-            if (data === "comino") {
-                await sendTelegramMessage(chatId, "Hai scelto COMINO ✅");
+            if (!userStates[chatId]) userStates[chatId] = {};
+
+            // STEP 1
+            if (data === "preverifica") {
+                userStates[chatId].tipo = "PREVERIFICA";
+
+                await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                    chat_id: chatId,
+                    text: "Scegli azienda:",
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "COMINO", callback_data: "comino" }],
+                            [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }]
+                        ]
+                    }
+                });
             }
 
-            else if (data === "bf_impianti") {
-                await sendTelegramMessage(chatId, "Hai scelto BF IMPIANTI ✅");
+            // STEP 2
+            else if (data === "comino" || data === "bf_impianti") {
+
+                userStates[chatId].azienda = data;
+                userStates[chatId].step = "segnale";
+
+                await sendTelegramMessage(chatId, "Inserisci il segnale riscontrato:");
+            }
+
+            // CONFERMA POSIZIONE
+            else if (data === "posizione_si") {
+
+                userStates[chatId].step = "foto";
+                userStates[chatId].fotoCount = 0;
+                userStates[chatId].foto = [];
+
+                await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
+            }
+
+            else if (data === "posizione_no") {
+
+                await sendTelegramMessage(chatId, "Reinvia la posizione corretta.");
             }
 
             return;
@@ -140,26 +174,32 @@ async function handleTelegramUpdate(update: any) {
 
 
         /*
-        ==========================
-        👉 2️⃣ MESSAGGI NORMALI
-        ==========================
+        =====================================
+        👉 MESSAGGI NORMALI
+        =====================================
         */
         if (!update.message) return;
 
         const chatId = update.message.chat.id;
-        const text = update.message.text || "";
 
-        console.log(`📩 Messaggio da ${chatId}: ${text}`);
+        if (!userStates[chatId]) userStates[chatId] = {};
 
-        if (text === "/start") {
+        const state = userStates[chatId];
+
+        /*
+        ========= START =========
+        */
+        if (update.message.text === "/start") {
+
+            userStates[chatId] = {}; // reset
 
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
-                text: "👋 Ciao! Scegli un'opzione:",
+                text: "Scegli operazione:",
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "COMINO", callback_data: "comino" }],
-                        [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }]
+                        [{ text: "PREVERIFICA", callback_data: "preverifica" }],
+                        [{ text: "ATTIVAZIONE", callback_data: "attivazione" }]
                     ]
                 }
             });
@@ -167,19 +207,99 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
 
-        // Risposta automatica generica
-        if (text.toLowerCase().includes("ciao")) {
-            await sendTelegramMessage(chatId, "Ciao anche a te! 😊");
+
+        /*
+        ========= SEGNALE =========
+        */
+        if (state.step === "segnale" && update.message.text) {
+
+            state.segnale = update.message.text;
+            state.step = "note";
+
+            await sendTelegramMessage(chatId, "Inserisci le note:");
             return;
         }
 
-        // Fallback
-        await sendTelegramMessage(chatId, `Hai scritto: ${text}`);
+
+        /*
+        ========= NOTE =========
+        */
+        if (state.step === "note" && update.message.text) {
+
+            state.note = update.message.text;
+            state.step = "posizione";
+
+            await sendTelegramMessage(chatId, "Sto recuperando la posizione... 📍");
+
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: "Invia la tua posizione:",
+                reply_markup: {
+                    keyboard: [[{ text: "Invia posizione 📍", request_location: true }]],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                }
+            });
+
+            return;
+        }
+
+
+        /*
+        ========= POSIZIONE =========
+        */
+        if (update.message.location) {
+
+            state.lat = update.message.location.latitude;
+            state.lng = update.message.location.longitude;
+
+            state.step = "conferma_posizione";
+
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "SI", callback_data: "posizione_si" }],
+                        [{ text: "NO", callback_data: "posizione_no" }]
+                    ]
+                }
+            });
+
+            return;
+        }
+
+
+        /*
+        ========= FOTO =========
+        */
+        if (state.step === "foto" && update.message.photo) {
+
+            const photos = update.message.photo;
+            const fileId = photos[photos.length - 1].file_id;
+
+            state.foto.push(fileId);
+            state.fotoCount++;
+
+            if (state.fotoCount < 3) {
+                await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
+            } else {
+
+                await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
+
+                console.log("DATI SALVATI:", state);
+
+                delete userStates[chatId]; // reset
+            }
+
+            return;
+        }
 
     } catch (error: any) {
-        console.error("Errore in handleTelegramUpdate:", error.response?.data || error.message);
+        console.error("Errore:", error.response?.data || error.message);
     }
 }
+
 
 
 
