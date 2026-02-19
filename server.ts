@@ -250,24 +250,34 @@ async function handleTelegramUpdate(update: any) {
         */
         if (update.message.location) {
 
-            state.lat = update.message.location.latitude;
-            state.lng = update.message.location.longitude;
+    state.lat = update.message.location.latitude;
+    state.lng = update.message.location.longitude;
 
-            state.step = "conferma_posizione";
+    state.step = "conferma_posizione";
 
-            await axios.post(`${TELEGRAM_API}/sendMessage`, {
-                chat_id: chatId,
-                text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "SI", callback_data: "posizione_si" }],
-                        [{ text: "NO", callback_data: "posizione_no" }]
-                    ]
-                }
-            });
-
-            return;
+    // 🔥 RIMUOVE IL PULSANTE "INVIA POSIZIONE"
+    await axios.post(`${TELEGRAM_API}/sendMessage`, {
+        chat_id: chatId,
+        text: "Posizione ricevuta ✅",
+        reply_markup: {
+            remove_keyboard: true
         }
+    });
+
+    // Ora chiede conferma con inline keyboard
+    await axios.post(`${TELEGRAM_API}/sendMessage`, {
+        chat_id: chatId,
+        text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "SI", callback_data: "posizione_si" }],
+                [{ text: "NO", callback_data: "posizione_no" }]
+            ]
+        }
+    });
+
+    return;
+}
 
 
         /*
