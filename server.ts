@@ -231,8 +231,8 @@ async function handleTelegramUpdate(update: any) {
             await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
 
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
-            if (data === "preverifica") {
-                state.tipo = "PREVERIFICA";
+            if (data === "preverifica" || data === "attivazione") {
+                state.tipo = data.toUpperCase();
                 const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli azienda:",
@@ -247,7 +247,7 @@ async function handleTelegramUpdate(update: any) {
             }
 
             // STEP 2 - SCELTA AZIENDA
-            else if (data === "comino" || data === "bf_impianti") {
+            if (data === "comino" || data === "bf_impianti") {
                 state.azienda = data;
                 state.step = "cliente";
                 await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
@@ -255,7 +255,7 @@ async function handleTelegramUpdate(update: any) {
             }
 
             // CONFERMA POSIZIONE
-            else if (data === "posizione_si") {
+            if (data === "posizione_si") {
                 state.step = "foto";
                 state.fotoCount = 0;
                 state.foto = [];
@@ -268,9 +268,9 @@ async function handleTelegramUpdate(update: any) {
             }
 
             // START AGAIN
-            else if (data === "start_again") {
+            if (data === "start_again") {
                 delete userStates[chatId];
-                const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli operazione:",
                     reply_markup: {
@@ -358,7 +358,7 @@ async function handleTelegramUpdate(update: any) {
             });
 
             // Chiedo conferma
-            const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
                 reply_markup: {
@@ -382,9 +382,6 @@ async function handleTelegramUpdate(update: any) {
                 await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
             } else {
                 await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
-
-                // INVIO MAIL
-                await sendEmailWithData(state);
 
                 // Reset stato
                 delete userStates[chatId];
