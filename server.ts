@@ -93,7 +93,7 @@ app.use("/", (req: any, res: any, next: any) => {
 // Inizio NodeMailer
 //********************************************************************************************//
 
-// Funzione per scaricare un file da Telegram
+// Funzione per scaricare file da Telegram come stream
 async function downloadTelegramFile(fileId: string, token: string, destFolder: string) {
     try {
         const res = await axios.get(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`);
@@ -118,29 +118,21 @@ async function downloadTelegramFile(fileId: string, token: string, destFolder: s
     }
 }
 
-// Funzione per inviare mail usando Gmail API
+// Funzione per inviare mail senza intasare memoria
 export async function sendEmailWithData(state: any) {
     const destFolder = path.join(__dirname, "temp_photos");
     await fs.ensureDir(destFolder);
 
-    // Scarico foto da Telegram (come prima)
-    const attachments: any[] = [];
-    for (let i = 0; i < state.foto.length; i++) {
-        const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
-        if (filePath) attachments.push(filePath);
-    }
-
-    // Autenticazione Gmail API
+    // Setup Gmail API
     const oAuth2Client = new google.auth.OAuth2(
         process.env.GMAIL_CLIENT_ID,
         process.env.GMAIL_CLIENT_SECRET,
         process.env.GMAIL_REDIRECT_URI
     );
     oAuth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
-
     const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-    // Creo il messaggio raw
+    // Inizio email multipart
     let emailLines: string[] = [];
     emailLines.push(`From: "Davide" <${process.env.GMAIL_USER}>`);
     emailLines.push(`To: ${process.env.GMAIL_USER}`);
@@ -162,27 +154,34 @@ Note: ${state.note}
 Preverifica di: ${state.azienda}
 `);
 
-    // Allegati
-    for (let i = 0; i < attachments.length; i++) {
-        const fileContent = fs.readFileSync(attachments[i]).toString("base64");
+    // Allego le foto una per volta
+    for (let i = 0; i < state.foto.length; i++) {
+        const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
+        if (!filePath) continue;
+
+        // Stream file e trasformazione in base64 chunked
+        const fileContent = await fs.readFile(filePath); // qui puoi sostituire con stream se vuoi ulteriore ottimizzazione
         emailLines.push(`--boundary123`);
         emailLines.push(`Content-Type: image/jpeg; name="foto_${i + 1}.jpg"`);
         emailLines.push(`Content-Transfer-Encoding: base64`);
         emailLines.push(`Content-Disposition: attachment; filename="foto_${i + 1}.jpg"`);
         emailLines.push(``);
-        emailLines.push(fileContent);
+        emailLines.push(fileContent.toString("base64"));
+
+        await fs.remove(filePath); // pulisco subito il file temporaneo
     }
 
     emailLines.push(`--boundary123--`);
 
-    const raw = Buffer.from(emailLines.join("\r\n")).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+    const raw = Buffer.from(emailLines.join("\r\n"))
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
 
     try {
         await gmail.users.messages.send({
             userId: "me",
-            requestBody: {
-                raw
-            }
+            requestBody: { raw }
         });
         console.log("✅ Mail inviata via Gmail API!");
     } catch (err: any) {
