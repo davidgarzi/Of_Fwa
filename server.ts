@@ -8,9 +8,8 @@ import _fileUpload from "express-fileupload";
 import axios from 'axios';
 //import fs from "fs-extra";
 import path from "path";
-//import { google } from "googleapis";
-import { Transform, pipeline } from "stream";
-import { promisify } from "util";
+import { google } from "googleapis";
+
 
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
