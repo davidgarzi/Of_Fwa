@@ -10,6 +10,7 @@
     "bybit-api": "^4.4.0",
     "cloudinary": "^2.9.0",
     "colors": "^1.4.0",
+    "configstore": "^8.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -20,7 +21,6 @@
     "mime": "^3.0.0",
     "mongodb": "^6.1.0",
     "nodemailer": "^8.0.1",
-    "nodemon": "^1.0.2",
     "openai": "^4.44.0",
     "path": "^0.12.7",
     "socket.io": "^4.7.5",
@@ -40,6 +40,7 @@
   "author": "Corneanu George Alexandru",
   "license": "ISC",
   "devDependencies": {
-    "@types/fs-extra": "^11.0.4"
+    "@types/fs-extra": "^11.0.4",
+    "nodemon": "^3.1.11"
   }
 }
