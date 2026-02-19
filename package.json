@@ -24,6 +24,8 @@
     "nodemailer": "^8.0.1",
     "openai": "^4.44.0",
     "path": "^0.12.7",
+    "pipeline": "^0.1.3",
+    "promisify": "^0.0.3",
     "socket.io": "^4.7.5",
     "streamifier": "^0.1.1",
     "ts-node": "^10.9.1",

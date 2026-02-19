@@ -9,6 +9,8 @@ import axios from 'axios';
 import fs from "fs-extra";
 import path from "path";
 import { google } from "googleapis";
+import { Transform, pipeline } from "stream";
+import { promisify } from "util";
 
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
@@ -80,6 +82,8 @@ app.use("/", (req: any, res: any, next: any) => {
 // Inizio NodeMailer
 //********************************************************************************************//
 
+const pipe = promisify(pipeline);
+
 // Scarica un file da Telegram e restituisce il path locale
 async function downloadTelegramFile(fileId: string, token: string, destFolder: string): Promise<string | null> {
   try {
@@ -105,27 +109,39 @@ async function downloadTelegramFile(fileId: string, token: string, destFolder: s
   }
 }
 
-// Converte un file in base64 **in streaming**, senza caricare tutto in memoria
-function streamToBase64(filePath: string): Promise<string> {
+// Streaming base64 senza concatenare tutto in memoria
+async function streamToBase64(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const chunks: string[] = [];
-    const stream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 }); // 64 KB alla volta
-    stream.on("data", (chunk) => chunks.push(chunk.toString("base64")));
-    stream.on("end", () => resolve(chunks.join("")));
-    stream.on("error", reject);
+    let base64Data = "";
+    const readStream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
+
+    const base64Transform = new Transform({
+      transform(chunk, _, callback) {
+        base64Data += chunk.toString("base64");
+        callback();
+      }
+    });
+
+    readStream.pipe(base64Transform);
+
+    base64Transform.on("finish", () => resolve(base64Data));
+    base64Transform.on("error", reject);
+    readStream.on("error", reject);
   });
 }
 
-// Funzione principale per inviare email
+// Funzione principale ottimizzata per Render
 export async function sendEmailWithData(state: any) {
   const destFolder = path.join(__dirname, "temp_photos");
   await fs.ensureDir(destFolder);
 
-  // Scarico le foto una per una
+  // Scarico e processa le foto **una alla volta** per limitare CPU
   const attachments: string[] = [];
   for (let i = 0; i < state.foto.length; i++) {
     const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
     if (filePath) attachments.push(filePath);
+    // piccolo delay per evitare picchi CPU su Render
+    await new Promise(r => setTimeout(r, 200));
   }
 
   // OAuth2 Gmail
@@ -137,7 +153,7 @@ export async function sendEmailWithData(state: any) {
   oAuth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-  // Inizio costruzione email
+  // Costruzione email
   const boundary = "boundary123";
   let emailLines: string[] = [];
   emailLines.push(`From: "Davide" <${process.env.GMAIL_USER}>`);
@@ -160,13 +176,14 @@ Note: ${state.note}
 Preverifica di: ${state.azienda}
 `);
 
-  // Allegati uno per uno, in streaming base64
+  // Allegati in streaming base64
   for (let i = 0; i < attachments.length; i++) {
     emailLines.push(`--${boundary}`);
     emailLines.push(`Content-Type: image/jpeg; name="foto_${i + 1}.jpg"`);
     emailLines.push(`Content-Transfer-Encoding: base64`);
     emailLines.push(`Content-Disposition: attachment; filename="foto_${i + 1}.jpg"`);
     emailLines.push(``);
+
     const fileBase64 = await streamToBase64(attachments[i]);
     emailLines.push(fileBase64);
   }
@@ -190,7 +207,7 @@ Preverifica di: ${state.azienda}
     console.error("❌ Errore invio mail:", err);
   }
 
-  // Pulisco la cartella temporanea
+  // Pulisco cartella temporanea
   await fs.emptyDir(destFolder);
 }
 
