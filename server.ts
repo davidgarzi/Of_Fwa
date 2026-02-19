@@ -204,7 +204,19 @@ async function handleTelegramUpdate(update: any) {
             const callbackQuery = update.callback_query;
             const data = callbackQuery.data;
 
-            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
+            // ✅ Stoppa il loading del bottone
+            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+                callback_query_id: callbackQuery.id
+            });
+
+            // Nasconde i pulsanti del messaggio cliccato
+            if (callbackQuery.message) {
+                await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
+                    chat_id: callbackQuery.message.chat.id,
+                    message_id: callbackQuery.message.message_id,
+                    reply_markup: {} // rimuove i pulsanti
+                });
+            }
 
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
             if (data === "preverifica") {
@@ -456,8 +468,8 @@ function creaRecord(record, tipo) {
             // Preparo il documento da salvare
             let doc = {
                 Operazione: "ETHUSDT",          // se vuoi lo puoi passare da fuori
-                Vinto:  tipo === "vinto" ? record === true : false,
-                Perso:  tipo === "perso" ? record === true : false
+                Vinto: tipo === "vinto" ? record === true : false,
+                Perso: tipo === "perso" ? record === true : false
             };
 
             // Inserimento nel DB
