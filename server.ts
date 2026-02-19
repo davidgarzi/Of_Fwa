@@ -201,39 +201,19 @@ async function handleTelegramUpdate(update: any) {
         if (!userStates[chatId]) userStates[chatId] = {};
         const state = userStates[chatId];
 
-        // Funzione helper per rimuovere bottoni e messaggio
-        const removeInlineButtons = async (msg: any) => {
-            if (!msg) return;
-            await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
-                chat_id: msg.chat.id,
-                message_id: msg.message_id,
-                reply_markup: {}
-            });
-            await axios.post(`${TELEGRAM_API}/editMessageText`, {
-                chat_id: msg.chat.id,
-                message_id: msg.message_id,
-                text: "" // rimuove anche la scritta
-            });
-        };
-
-        /*
-        ===========================
-        CLICK PULSANTI (callback_query)
-        ===========================
-        */
+        /* ===========================
+           CLICK PULSANTI (callback_query)
+        =========================== */
         if (update.callback_query) {
             const callbackQuery = update.callback_query;
             const data = callbackQuery.data;
-
-            // Rimuovo bottoni e testo vecchio
-            await removeInlineButtons(callbackQuery.message);
 
             await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
 
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
             if (data === "preverifica") {
                 state.tipo = "PREVERIFICA";
-                const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli azienda:",
                     reply_markup: {
@@ -243,7 +223,6 @@ async function handleTelegramUpdate(update: any) {
                         ]
                     }
                 });
-                return;
             }
 
             // STEP 2 - SCELTA AZIENDA
@@ -251,7 +230,6 @@ async function handleTelegramUpdate(update: any) {
                 state.azienda = data;
                 state.step = "cliente";
                 await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
-                return;
             }
 
             // CONFERMA POSIZIONE
@@ -260,37 +238,16 @@ async function handleTelegramUpdate(update: any) {
                 state.fotoCount = 0;
                 state.foto = [];
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
-                return;
             } else if (data === "posizione_no") {
-                state.step = "posizione";
                 await sendTelegramMessage(chatId, "Reinvia la posizione corretta.");
-                return;
-            }
-
-            // START AGAIN
-            else if (data === "start_again") {
-                delete userStates[chatId];
-                const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
-                    chat_id: chatId,
-                    text: "Scegli operazione:",
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: "PREVERIFICA", callback_data: "preverifica" }],
-                            [{ text: "ATTIVAZIONE", callback_data: "attivazione" }]
-                        ]
-                    }
-                });
-                return;
             }
 
             return;
         }
 
-        /*
-        ===========================
-        MESSAGGI TESTO / POSIZIONE / FOTO
-        ===========================
-        */
+        /* ===========================
+           MESSAGGI TESTO / POSIZIONE / FOTO
+        =========================== */
         const text = update.message?.text || "";
 
         // START
@@ -358,7 +315,7 @@ async function handleTelegramUpdate(update: any) {
             });
 
             // Chiedo conferma
-            const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
                 reply_markup: {
@@ -548,6 +505,28 @@ app.use("/", (err, req, res, next) => {
     console.log("************* SERVER ERROR ***************\n", err.stack);
     res.status(500).send(err.message);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
