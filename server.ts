@@ -108,22 +108,79 @@ async function sendTelegramMessage(chatId: string, text: string) {
 
 // Funzione per gestire i messaggi in arrivo da Telegram (via webhook)
 async function handleTelegramUpdate(update: any) {
-    if (!update.message) return;
 
-    const chatId = update.message.chat.id;
-    const text = update.message.text;
-    console.log(`📩 Messaggio da ${chatId}: ${text}`);
+    try {
 
-    // Esempio semplice di risposta automatica
-    if (text === "/start") {
-        await sendTelegramMessage(chatId, "👋 Ciao! Sono il tuo bot per la gestione fwa");
-    } else if (text.toLowerCase().includes("ciao")) {
-        await sendTelegramMessage(chatId, "Ciao anche a te! 😊");
-    }
-    else {
+        /*
+        ==========================
+        👉 1️⃣ CLICK SUI PULSANTI
+        ==========================
+        */
+        if (update.callback_query) {
+
+            const callbackQuery = update.callback_query;
+            const chatId = callbackQuery.message.chat.id;
+            const data = callbackQuery.data;
+
+            // Stoppa il loading del bottone
+            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+                callback_query_id: callbackQuery.id
+            });
+
+            if (data === "comino") {
+                await sendTelegramMessage(chatId, "Hai scelto COMINO ✅");
+            }
+
+            else if (data === "bf_impianti") {
+                await sendTelegramMessage(chatId, "Hai scelto BF IMPIANTI ✅");
+            }
+
+            return;
+        }
+
+
+        /*
+        ==========================
+        👉 2️⃣ MESSAGGI NORMALI
+        ==========================
+        */
+        if (!update.message) return;
+
+        const chatId = update.message.chat.id;
+        const text = update.message.text || "";
+
+        console.log(`📩 Messaggio da ${chatId}: ${text}`);
+
+        if (text === "/start") {
+
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: "👋 Ciao! Scegli un'opzione:",
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "COMINO", callback_data: "comino" }],
+                        [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }]
+                    ]
+                }
+            });
+
+            return;
+        }
+
+        // Risposta automatica generica
+        if (text.toLowerCase().includes("ciao")) {
+            await sendTelegramMessage(chatId, "Ciao anche a te! 😊");
+            return;
+        }
+
+        // Fallback
         await sendTelegramMessage(chatId, `Hai scritto: ${text}`);
+
+    } catch (error: any) {
+        console.error("Errore in handleTelegramUpdate:", error.response?.data || error.message);
     }
 }
+
 
 
 // Endpoint Webhook — riceve aggiornamenti da Telegram
