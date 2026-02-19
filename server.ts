@@ -92,42 +92,57 @@ app.use("/", (req: any, res: any, next: any) => {
 // Inizio NodeMailer
 //********************************************************************************************//
 
-// Scarica foto da Telegram
+// Funzione per scaricare un file da Telegram
 async function downloadTelegramFile(fileId: string, token: string, destFolder: string) {
     try {
         const res = await axios.get(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`);
         const filePath = res.data.result.file_path;
         const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
         const fileName = path.join(destFolder, path.basename(filePath));
+
         const writer = fs.createWriteStream(fileName);
         const response = await axios.get(url, { responseType: "stream" });
         response.data.pipe(writer);
+
         await new Promise((resolve, reject) => {
             writer.on("finish", resolve);
             writer.on("error", reject);
         });
+
+        console.log("📥 Foto scaricata:", fileName);
         return fileName;
     } catch (err: any) {
-        console.error("Errore download foto:", err.message);
+        console.error("❌ Errore download foto:", err.message);
         return null;
     }
 }
 
-// Invia mail completa
+// Funzione principale per inviare la mail
 export async function sendEmailWithData(state: any) {
     const destFolder = path.join(__dirname, "temp_photos");
     await fs.ensureDir(destFolder);
 
     const attachments: any[] = [];
+
     for (let i = 0; i < state.foto.length; i++) {
-        const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
-        if (filePath) attachments.push({ filename: `foto_${i + 1}.jpg`, path: filePath });
+        const filePath = await downloadTelegramFile(
+            state.foto[i],
+            process.env.TELEGRAM_BOT_TOKEN!,
+            destFolder
+        );
+        if (filePath) {
+            attachments.push({
+                filename: `foto_${i + 1}.jpg`,
+                path: filePath
+            });
+        }
     }
 
+    // Configurazione nodemailer con Gmail App Password
     const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 465,
-        secure: true,
+        secure: true, // SSL
         auth: {
             user: "garzinodavide@gmail.com",
             pass: process.env.GMAIL_APP_PASSWORD
@@ -160,11 +175,14 @@ Preverifica di: ${state.azienda}
         });
         console.log("✅ Mail inviata con foto scaricate!");
     } catch (err: any) {
-        console.error("❌ Errore invio mail:", err.message);
+        console.error("❌ Errore invio mail:", err);
     }
 
+    // Pulizia cartella temporanea
     await fs.emptyDir(destFolder);
+    console.log("🗑️ Cartella temporanea pulita");
 }
+
 
 //********************************************************************************************//
 // Fine NodeMailer
