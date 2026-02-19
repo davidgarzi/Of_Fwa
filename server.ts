@@ -231,8 +231,8 @@ async function handleTelegramUpdate(update: any) {
             await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, { callback_query_id: callbackQuery.id });
 
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
-            if (data === "preverifica" || data === "attivazione") {
-                state.tipo = data.toUpperCase();
+            if (data === "preverifica") {
+                state.tipo = "PREVERIFICA";
                 const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli azienda:",
@@ -247,7 +247,7 @@ async function handleTelegramUpdate(update: any) {
             }
 
             // STEP 2 - SCELTA AZIENDA
-            if (data === "comino" || data === "bf_impianti") {
+            else if (data === "comino" || data === "bf_impianti") {
                 state.azienda = data;
                 state.step = "cliente";
                 await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
@@ -255,7 +255,7 @@ async function handleTelegramUpdate(update: any) {
             }
 
             // CONFERMA POSIZIONE
-            if (data === "posizione_si") {
+            else if (data === "posizione_si") {
                 state.step = "foto";
                 state.fotoCount = 0;
                 state.foto = [];
@@ -268,9 +268,9 @@ async function handleTelegramUpdate(update: any) {
             }
 
             // START AGAIN
-            if (data === "start_again") {
+            else if (data === "start_again") {
                 delete userStates[chatId];
-                await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Scegli operazione:",
                     reply_markup: {
@@ -358,7 +358,7 @@ async function handleTelegramUpdate(update: any) {
             });
 
             // Chiedo conferma
-            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+            const msg = await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
                 reply_markup: {
@@ -382,6 +382,9 @@ async function handleTelegramUpdate(update: any) {
                 await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
             } else {
                 await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
+
+                // INVIO MAIL
+                await sendEmailWithData(state);
 
                 // Reset stato
                 delete userStates[chatId];
@@ -410,6 +413,7 @@ async function handleTelegramUpdate(update: any) {
         console.error("Errore handleTelegramUpdate:", error.response?.data || error.message);
     }
 }
+
 
 
 // Endpoint Webhook — riceve aggiornamenti da Telegram
@@ -498,8 +502,8 @@ function creaRecord(record, tipo) {
             // Preparo il documento da salvare
             let doc = {
                 Operazione: "ETHUSDT",          // se vuoi lo puoi passare da fuori
-                Vinto: tipo === "vinto" ? record === true : false,
-                Perso: tipo === "perso" ? record === true : false
+                Vinto:  tipo === "vinto" ? record === true : false,
+                Perso:  tipo === "perso" ? record === true : false
             };
 
             // Inserimento nel DB
