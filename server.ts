@@ -107,10 +107,10 @@ async function sendEmailWithData(state: any) {
         const htmlContent = `
             <h2>Nuova ${state.tipo}</h2>
 
-            <p><strong>Azienda:</strong> ${state.azienda}</p>
+            <p><strong>Operatore:</strong> ${state.azienda}</p>
             <p><strong>Cliente:</strong> ${state.cliente}</p>
-            <p><strong>Segnale:</strong> ${state.segnale}</p>
-            <p><strong>Note:</strong> ${state.note}</p>
+            <p><strong>Segnale riscontrato:</strong> ${state.segnale}</p>
+            <p><strong>Note aggiuntive:</strong> ${state.note}</p>
 
             <hr/>
 
@@ -128,7 +128,10 @@ async function sendEmailWithData(state: any) {
         await resend.emails.send({
             from: "onboarding@resend.dev",
             to: "garzinodavide@gmail.com",
-            subject: `Nuova ${state.tipo} - ${state.cliente}`,
+            cc: [
+                "d.garzino@isiline.net",
+                "garzinodavide@gmail.com"
+            ], subject: `[prova bot] ESITO ${state.tipo} FWA - ${state.cliente}`,
             html: htmlContent,
             attachments
         });
@@ -357,47 +360,37 @@ async function handleTelegramUpdate(update: any) {
         }
 
         // FOTO - gestione corretta (no duplicati dimensioni)
-if (state.step === "foto" && update.message.photo) {
+        if (state.step === "foto" && update.message.photo) {
 
-    // Prendo SOLO la versione più grande della foto
-    const photos = update.message.photo;
-    const largestPhoto = photos[photos.length - 1];
-    const fileId = largestPhoto.file_id;
+            // Prendo SOLO la versione più grande della foto
+            const photos = update.message.photo;
+            const largestPhoto = photos[photos.length - 1];
+            const fileId = largestPhoto.file_id;
 
-    // 🔒 Evito duplicati (extra sicurezza)
-    if (!state.foto.includes(fileId)) {
-        state.foto.push(fileId);
-        state.fotoCount++;
-    }
-
-    if (state.fotoCount < 3) {
-        await sendTelegramMessage(
-            chatId,
-            `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
-        );
-    } else {
-
-        await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
-
-        // 🔥 Invio email con allegati
-        await sendEmailWithData(state);
-
-        // 🧹 Pulizia memoria
-        delete userStates[chatId];
-
-        await axios.post(`${TELEGRAM_API}/sendMessage`, {
-            chat_id: chatId,
-            text: "Vuoi iniziare una nuova procedura?",
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "START", callback_data: "start_again" }]
-                ]
+            // 🔒 Evito duplicati (extra sicurezza)
+            if (!state.foto.includes(fileId)) {
+                state.foto.push(fileId);
+                state.fotoCount++;
             }
-        });
-    }
 
-    return;
-}
+            if (state.fotoCount < 3) {
+                await sendTelegramMessage(
+                    chatId,
+                    `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
+                );
+            } else {
+
+                await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
+
+                // 🔥 Invio email con allegati
+                await sendEmailWithData(state);
+
+                // 🧹 Pulizia memoria
+                delete userStates[chatId];
+            }
+
+            return;
+        }
 
         // RISPOSTA GENERICA
         if (text.toLowerCase().includes("ciao")) {
