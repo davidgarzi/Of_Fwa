@@ -251,7 +251,7 @@ async function handleTelegramUpdate(update: any) {
                 state.azienda = data;
                 state.step = "cliente";
                 await disableButton(callbackQuery.message.message_id, chatId, data);
-                await sendTelegramMessage(chatId, "Inserisci il nome del cliente:");
+                await sendTelegramMessage(chatId, "Inserisci il nome del cliente (COGNOME E NOME):");
             }
 
             // CONFERMA POSIZIONE
@@ -317,7 +317,7 @@ async function handleTelegramUpdate(update: any) {
 
             await sendTelegramMessage(
                 chatId,
-                "Indica il nome completo (cognome e nome) del cliente.\n\nInserisci il segnale riscontrato (numero tra 1 e 98):"
+                "Inserisci il segnale riscontrato (numero tra 1 e 98):"
             );
 
             return;
