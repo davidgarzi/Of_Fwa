@@ -307,10 +307,27 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
 
-        // SEGNALE
+        // SEGNALE (deve essere numero > 0 e < 99)
         if (state.step === "segnale" && text) {
-            state.segnale = text;
+
+            const numero = Number(text);
+
+            // Controllo: numero valido, intero, compreso tra 1 e 98
+            if (
+                !Number.isInteger(numero) ||
+                numero <= 0 ||
+                numero >= 99
+            ) {
+                await sendTelegramMessage(
+                    chatId,
+                    "⚠️ Inserisci un numero valido compreso tra 1 e 98."
+                );
+                return; // 🔒 NON passo allo step successivo
+            }
+
+            state.segnale = numero;
             state.step = "note";
+
             await sendTelegramMessage(chatId, "Inserisci le note:");
             return;
         }
