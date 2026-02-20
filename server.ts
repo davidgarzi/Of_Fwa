@@ -263,8 +263,8 @@ async function handleTelegramUpdate(update: any) {
                     text: "Scegli azienda:",
                     reply_markup: {
                         inline_keyboard: [
-                            [{ text: "COMINO", callback_data: "OASI COMINO" }],
-                            [{ text: "BF IMPIANTI", callback_data: "BF_IMPIANTI" }]
+                            [{ text: "COMINO", callback_data: "comino" }],
+                            [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }]
                         ]
                     }
                 });
