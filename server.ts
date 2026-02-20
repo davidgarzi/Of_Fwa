@@ -110,6 +110,7 @@ async function sendEmailWithData(state: any) {
             <p><strong>Operatore:</strong> ${state.azienda}</p>
             <p><strong>Cliente:</strong> ${state.cliente}</p>
             <p><strong>Segnale riscontrato:</strong> ${state.segnale}</p>
+            <p><strong>Esito:</strong> ${state.esito}</p>
             <p><strong>Note aggiuntive:</strong> ${state.note}</p>
 
             <hr/>
@@ -261,10 +262,21 @@ async function handleTelegramUpdate(update: any) {
                 await disableButton(callbackQuery.message.message_id, chatId, data);
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
             } else if (data === "posizione_no") {
-                await disableButton(callbackQuery.message.message_id, chatId, data);
-                await sendTelegramMessage(chatId, "Reinvia la posizione corretta.");
-            }
 
+                await disableButton(callbackQuery.message.message_id, chatId, data);
+
+                state.step = "posizione"; // 🔥 Torno allo step posizione
+
+                await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                    chat_id: chatId,
+                    text: "Reinvia la posizione corretta 📍",
+                    reply_markup: {
+                        keyboard: [[{ text: "Invia posizione 📍", request_location: true }]],
+                        resize_keyboard: true,
+                        one_time_keyboard: true
+                    }
+                });
+            }
             // Pulsante START dopo fine procedura
             else if (data === "start_again") {
                 await disableButton(callbackQuery.message.message_id, chatId, data);
@@ -299,18 +311,23 @@ async function handleTelegramUpdate(update: any) {
 
         // NOME CLIENTE
         if (state.step === "cliente" && text) {
-            state.cliente = text;
+
+            state.cliente = text.trim().toUpperCase(); // 🔥 MAIUSCOLO
             state.step = "segnale";
-            await sendTelegramMessage(chatId, "Inserisci il segnale riscontrato (senza caratteri speciali inserisci un numero tra 1 e 98):");
+
+            await sendTelegramMessage(
+                chatId,
+                "Indica il nome completo (cognome e nome) del cliente.\n\nInserisci il segnale riscontrato (numero tra 1 e 98):"
+            );
+
             return;
         }
 
-        // SEGNALE (deve essere numero > 0 e < 99)
+        // SEGNALE (numero tra 1 e 98 con classificazione)
         if (state.step === "segnale" && text) {
 
-            const numero = Number(text);
+            const numero = Number(text.trim());
 
-            // Controllo: numero valido, intero, compreso tra 1 e 98
             if (
                 !Number.isInteger(numero) ||
                 numero <= 0 ||
@@ -320,19 +337,41 @@ async function handleTelegramUpdate(update: any) {
                     chatId,
                     "⚠️ Inserisci un numero valido compreso tra 1 e 98."
                 );
-                return; // 🔒 NON passo allo step successivo
+                return;
             }
 
             state.segnale = numero;
+
+            // 🔥 CLASSIFICAZIONE AUTOMATICA
+            if (numero < 70) {
+                state.esito = "OK";
+            } else if (numero >= 70 && numero <= 75) {
+                state.esito = "VERIFICARE CON OF";
+            } else {
+                state.esito = "KO";
+            }
+
             state.step = "note";
 
-            await sendTelegramMessage(chatId, "Inserisci le note:");
+            await sendTelegramMessage(chatId, "Inserisci le note (minimo 5 caratteri):");
+
             return;
         }
 
-        // NOTE
+        // NOTE (minimo 5 caratteri)
         if (state.step === "note" && text) {
-            state.note = text;
+
+            const notePulite = text.trim();
+
+            if (notePulite.length < 5) {
+                await sendTelegramMessage(
+                    chatId,
+                    "⚠️ Inserisci minimo 5 caratteri."
+                );
+                return;
+            }
+
+            state.note = notePulite;
             state.step = "posizione";
 
             await sendTelegramMessage(chatId, "Sto recuperando la posizione... 📍");
@@ -346,6 +385,7 @@ async function handleTelegramUpdate(update: any) {
                     one_time_keyboard: true
                 }
             });
+
             return;
         }
 
