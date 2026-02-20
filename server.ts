@@ -82,52 +82,58 @@ app.use("/", (req: any, res: any, next: any) => {
 // Inizio NodeMailer
 //********************************************************************************************//
 
-const resend = new Resend('re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq');
+
+
+
+const resend = new Resend("re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq");
 
 async function sendEmailWithData(state: any) {
     try {
 
+        // 🔥 scarico tutte le foto
+        const attachments = [];
+
+        for (let i = 0; i < state.foto.length; i++) {
+            const buffer = await downloadTelegramFile(state.foto[i]);
+
+            if (buffer) {
+                attachments.push({
+                    filename: `foto_${i + 1}.jpg`,
+                    content: buffer
+                });
+            }
+        }
+
         const htmlContent = `
-            <h2>Nuova ${state.tipo || "Procedura"}</h2>
-            
-            <p><strong>Azienda:</strong> ${state.azienda || "-"}</p>
-            <p><strong>Cliente:</strong> ${state.cliente || "-"}</p>
-            <p><strong>Segnale:</strong> ${state.segnale || "-"}</p>
-            <p><strong>Note:</strong> ${state.note || "-"}</p>
+            <h2>Nuova ${state.tipo}</h2>
+
+            <p><strong>Azienda:</strong> ${state.azienda}</p>
+            <p><strong>Cliente:</strong> ${state.cliente}</p>
+            <p><strong>Segnale:</strong> ${state.segnale}</p>
+            <p><strong>Note:</strong> ${state.note}</p>
 
             <hr/>
 
             <h3>Posizione</h3>
-            <p><strong>Lat:</strong> ${state.lat || "-"}</p>
-            <p><strong>Lng:</strong> ${state.lng || "-"}</p>
-            ${
-                state.lat && state.lng
-                ? `<p>
-                     <a href="https://www.google.com/maps?q=${state.lat},${state.lng}" target="_blank">
-                        Visualizza su Google Maps
-                     </a>
-                   </p>`
-                : ""
-            }
+            <p>Lat: ${state.lat}</p>
+            <p>Lng: ${state.lng}</p>
 
-            <hr/>
-
-            <h3>Foto ricevute (${state.foto?.length || 0})</h3>
-            <ul>
-                ${(state.foto || [])
-                    .map((fileId: string) => `<li>${fileId}</li>`)
-                    .join("")}
-            </ul>
+            <p>
+                <a href="https://www.google.com/maps?q=${state.lat},${state.lng}" target="_blank">
+                    Apri su Google Maps
+                </a>
+            </p>
         `;
 
         await resend.emails.send({
-            from: 'onboarding@resend.dev',
-            to: 'garzinodavide@gmail.com',
+            from: "onboarding@resend.dev",
+            to: "garzinodavide@gmail.com",
             subject: `Nuova ${state.tipo} - ${state.cliente}`,
-            html: htmlContent
+            html: htmlContent,
+            attachments
         });
 
-        console.log("Email inviata con successo!");
+        console.log("✅ Email con foto inviata con successo!");
 
     } catch (error) {
         console.error("Errore invio email:", error);
@@ -144,6 +150,33 @@ async function sendEmailWithData(state: any) {
 // URL base API Telegram
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+
+async function downloadTelegramFile(fileId: string) {
+    try {
+        // 1. Ottengo il file_path
+        const fileResponse = await axios.post(`${TELEGRAM_API}/getFile`, {
+            file_id: fileId
+        });
+
+        const filePath = fileResponse.data.result.file_path;
+
+        // 2. URL reale del file
+        const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+
+        // 3. Scarico il file come buffer
+        const fileDownload = await axios.get(fileUrl, {
+            responseType: "arraybuffer"
+        });
+
+        return Buffer.from(fileDownload.data);
+
+    } catch (error) {
+        console.error("Errore download file:", error);
+        return null;
+    }
+}
+
 
 // Funzione per inviare un messaggio Telegram
 async function sendTelegramMessage(chatId: string, text: string) {
