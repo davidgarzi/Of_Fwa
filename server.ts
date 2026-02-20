@@ -282,6 +282,9 @@ async function handleTelegramUpdate(update: any) {
 
         // START
         if (text === "/start") {
+
+            await sendTelegramMessage(chatId, "Avviando il server...");
+
             userStates[chatId] = {};
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
