@@ -356,37 +356,48 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
 
-        // FOTO - gestione singola o multipla
-        if (state.step === "foto" && update.message.photo) {
-            const photos = update.message.photo;
-            // prendo tutte le foto ricevute contemporaneamente
-            for (let i = 0; i < photos.length; i++) {
-                const fileId = photos[i].file_id;
-                state.foto.push(fileId);
-                state.fotoCount++;
+        // FOTO - gestione corretta (no duplicati dimensioni)
+if (state.step === "foto" && update.message.photo) {
 
-                if (state.fotoCount >= 3) break;
+    // Prendo SOLO la versione più grande della foto
+    const photos = update.message.photo;
+    const largestPhoto = photos[photos.length - 1];
+    const fileId = largestPhoto.file_id;
+
+    // 🔒 Evito duplicati (extra sicurezza)
+    if (!state.foto.includes(fileId)) {
+        state.foto.push(fileId);
+        state.fotoCount++;
+    }
+
+    if (state.fotoCount < 3) {
+        await sendTelegramMessage(
+            chatId,
+            `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
+        );
+    } else {
+
+        await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
+
+        // 🔥 Invio email con allegati
+        await sendEmailWithData(state);
+
+        // 🧹 Pulizia memoria
+        delete userStates[chatId];
+
+        await axios.post(`${TELEGRAM_API}/sendMessage`, {
+            chat_id: chatId,
+            text: "Vuoi iniziare una nuova procedura?",
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "START", callback_data: "start_again" }]
+                ]
             }
+        });
+    }
 
-            if (state.fotoCount < 3) {
-                await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
-            } else {
-                await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
-                await sendEmailWithData(state);
-                delete userStates[chatId];
-
-                await axios.post(`${TELEGRAM_API}/sendMessage`, {
-                    chat_id: chatId,
-                    text: "Vuoi iniziare una nuova procedura?",
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: "START", callback_data: "start_again" }]
-                        ]
-                    }
-                });
-            }
-            return;
-        }
+    return;
+}
 
         // RISPOSTA GENERICA
         if (text.toLowerCase().includes("ciao")) {
