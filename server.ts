@@ -151,8 +151,9 @@ async function sendEmailWithData(state: any) {
 
         await resend.emails.send({
             from: "onboarding@resend.dev",
-            to: "garzinodavide@gmail.com",
-            subject: `[prova bot] ESITO ${state.tipo} FWA - ${state.cliente}`,
+            to: "assurance@isiline.net",
+            cc: "a.girello@isiline.net",
+            subject: `[prova bot FWA] ESITO ${state.tipo} FWA - ${state.cliente}`,
             html: htmlContent,
             attachments
         });
@@ -262,8 +263,8 @@ async function handleTelegramUpdate(update: any) {
                     text: "Scegli azienda:",
                     reply_markup: {
                         inline_keyboard: [
-                            [{ text: "COMINO", callback_data: "comino" }],
-                            [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }]
+                            [{ text: "COMINO", callback_data: "OASI COMINO" }],
+                            [{ text: "BF IMPIANTI", callback_data: "BF_IMPIANTI" }]
                         ]
                     }
                 });
