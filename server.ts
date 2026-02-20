@@ -8,6 +8,7 @@ import _fileUpload from "express-fileupload";
 import axios from 'axios';
 //import fs from "fs-extra";
 import path from "path";
+import { Resend } from 'resend';
 //import { google } from "google-auth-library";
 
 
@@ -80,121 +81,58 @@ app.use("/", (req: any, res: any, next: any) => {
 //********************************************************************************************//
 // Inizio NodeMailer
 //********************************************************************************************//
-/*
-// Scarica un file da Telegram e restituisce il path locale
-async function downloadTelegramFile(fileId: string, token: string, destFolder: string): Promise<string | null> {
-  try {
-    const res = await axios.get(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`);
-    const filePath = res.data.result.file_path;
-    const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
-    const fileName = path.join(destFolder, path.basename(filePath));
 
-    const writer = fs.createWriteStream(fileName);
-    const response = await axios.get(url, { responseType: "stream" });
-    response.data.pipe(writer);
+const resend = new Resend('re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq');
 
-    await new Promise((resolve, reject) => {
-      writer.on("finish", resolve);
-      writer.on("error", reject);
-    });
+async function sendEmailWithData(state: any) {
+    try {
 
-    console.log("📥 Foto scaricata:", fileName);
-    return fileName;
-  } catch (err: any) {
-    console.error("❌ Errore download foto:", err.message);
-    return null;
-  }
+        const htmlContent = `
+            <h2>Nuova ${state.tipo || "Procedura"}</h2>
+            
+            <p><strong>Azienda:</strong> ${state.azienda || "-"}</p>
+            <p><strong>Cliente:</strong> ${state.cliente || "-"}</p>
+            <p><strong>Segnale:</strong> ${state.segnale || "-"}</p>
+            <p><strong>Note:</strong> ${state.note || "-"}</p>
+
+            <hr/>
+
+            <h3>Posizione</h3>
+            <p><strong>Lat:</strong> ${state.lat || "-"}</p>
+            <p><strong>Lng:</strong> ${state.lng || "-"}</p>
+            ${
+                state.lat && state.lng
+                ? `<p>
+                     <a href="https://www.google.com/maps?q=${state.lat},${state.lng}" target="_blank">
+                        Visualizza su Google Maps
+                     </a>
+                   </p>`
+                : ""
+            }
+
+            <hr/>
+
+            <h3>Foto ricevute (${state.foto?.length || 0})</h3>
+            <ul>
+                ${(state.foto || [])
+                    .map((fileId: string) => `<li>${fileId}</li>`)
+                    .join("")}
+            </ul>
+        `;
+
+        await resend.emails.send({
+            from: 'onboarding@resend.dev',
+            to: 'garzinodavide@gmail.com',
+            subject: `Nuova ${state.tipo} - ${state.cliente}`,
+            html: htmlContent
+        });
+
+        console.log("Email inviata con successo!");
+
+    } catch (error) {
+        console.error("Errore invio email:", error);
+    }
 }
-
-// Converte un file in base64 **in streaming**, senza caricare tutto in memoria
-function streamToBase64(filePath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: string[] = [];
-    const stream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 }); // 64 KB alla volta
-    stream.on("data", (chunk) => chunks.push(chunk.toString("base64")));
-    stream.on("end", () => resolve(chunks.join("")));
-    stream.on("error", reject);
-  });
-}
-
-// Funzione principale per inviare email
-export async function sendEmailWithData(state: any) {
-  const destFolder = path.join(__dirname, "temp_photos");
-  await fs.ensureDir(destFolder);
-
-  // Scarico le foto una per una
-  const attachments: string[] = [];
-  for (let i = 0; i < state.foto.length; i++) {
-    const filePath = await downloadTelegramFile(state.foto[i], process.env.TELEGRAM_BOT_TOKEN!, destFolder);
-    if (filePath) attachments.push(filePath);
-  }
-
-  // OAuth2 Gmail
-  const oAuth2Client = new google.auth.OAuth2(
-    process.env.GMAIL_CLIENT_ID,
-    process.env.GMAIL_CLIENT_SECRET,
-    process.env.GMAIL_REDIRECT_URI
-  );
-  oAuth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
-  const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-
-  // Inizio costruzione email
-  const boundary = "boundary123";
-  let emailLines: string[] = [];
-  emailLines.push(`From: "Davide" <${process.env.GMAIL_USER}>`);
-  emailLines.push(`To: ${process.env.GMAIL_USER}`);
-  emailLines.push(`Subject: PREVERIFICA - ${state.cliente}`);
-  emailLines.push(`MIME-Version: 1.0`);
-  emailLines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
-  emailLines.push(``);
-  emailLines.push(`--${boundary}`);
-  emailLines.push(`Content-Type: text/plain; charset="UTF-8"`);
-  emailLines.push(``);
-  emailLines.push(`
-Posizione:
-Lat: ${state.lat}, Lng: ${state.lng}
-
-Segnale: ${state.segnale}
-
-Note: ${state.note}
-
-Preverifica di: ${state.azienda}
-`);
-
-  // Allegati uno per uno, in streaming base64
-  for (let i = 0; i < attachments.length; i++) {
-    emailLines.push(`--${boundary}`);
-    emailLines.push(`Content-Type: image/jpeg; name="foto_${i + 1}.jpg"`);
-    emailLines.push(`Content-Transfer-Encoding: base64`);
-    emailLines.push(`Content-Disposition: attachment; filename="foto_${i + 1}.jpg"`);
-    emailLines.push(``);
-    const fileBase64 = await streamToBase64(attachments[i]);
-    emailLines.push(fileBase64);
-  }
-
-  emailLines.push(`--${boundary}--`);
-
-  // Converto in base64 URL safe
-  const raw = Buffer.from(emailLines.join("\r\n"))
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  try {
-    await gmail.users.messages.send({
-      userId: "me",
-      requestBody: { raw }
-    });
-    console.log("✅ Mail inviata via Gmail API!");
-  } catch (err: any) {
-    console.error("❌ Errore invio mail:", err);
-  }
-
-  // Pulisco la cartella temporanea
-  await fs.emptyDir(destFolder);
-}
-*/
 //********************************************************************************************//
 // Fine NodeMailer
 //********************************************************************************************//
