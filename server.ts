@@ -339,7 +339,7 @@ async function handleTelegramUpdate(update: any) {
                 await sendTelegramMessage(chatId, `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`);
             } else {
                 await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
-                //await sendEmailWithData(state);
+                await sendEmailWithData(state);
                 delete userStates[chatId];
 
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
