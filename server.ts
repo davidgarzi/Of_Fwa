@@ -88,6 +88,18 @@ app.use("/", (req: any, res: any, next: any) => {
 const resend = new Resend("re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq");
 
 async function sendEmailWithData(state: any) {
+
+    let esitoColor = "#cccccc"; // default grigio
+
+    if (state.esito === "OK") {
+        esitoColor = "#28a745"; // verde
+    } else if (state.esito === "KO") {
+        esitoColor = "#dc3545"; // rosso
+    } else if (state.esito === "VERIFICARE CON OF") {
+        esitoColor = "#fd7e14"; // arancione
+    }
+
+
     try {
 
         // 🔥 scarico tutte le foto
@@ -105,12 +117,23 @@ async function sendEmailWithData(state: any) {
         }
 
         const htmlContent = `
-            <h2>Nuova ${state.tipo}</h2>
+            <h2> ${state.cliente}</h2>
 
             <p><strong>Operatore:</strong> ${state.azienda}</p>
-            <p><strong>Cliente:</strong> ${state.cliente}</p>
             <p><strong>Segnale riscontrato:</strong> ${state.segnale}</p>
-            <p><strong>Esito:</strong> ${state.esito}</p>
+            <p>
+            <strong>Esito:</strong>
+            <span style="
+            background-color: ${esitoColor};
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: inline-block;
+            ">
+            ${state.esito}
+            </span>
+            </p>
             <p><strong>Note aggiuntive:</strong> ${state.note}</p>
 
             <hr/>
