@@ -283,8 +283,6 @@ async function handleTelegramUpdate(update: any) {
         // START
         if (text === "/start") {
 
-            await sendTelegramMessage(chatId, "Avviando il server...");
-
             userStates[chatId] = {};
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
@@ -303,7 +301,7 @@ async function handleTelegramUpdate(update: any) {
         if (state.step === "cliente" && text) {
             state.cliente = text;
             state.step = "segnale";
-            await sendTelegramMessage(chatId, "Inserisci il segnale riscontrato:");
+            await sendTelegramMessage(chatId, "Inserisci il segnale riscontrato (senza caratteri speciali inserisci un numero tra 1 e 98):");
             return;
         }
 
