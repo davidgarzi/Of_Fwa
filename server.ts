@@ -126,7 +126,7 @@ async function sendEmailWithData(state: any) {
         <!-- HEADER -->
         <div style="background:#1f2937;padding:20px;text-align:center;">
             <h2 style="color:#ffffff;margin:0;font-size:22px;">
-                REPORT TECNICO
+                REPORT TECNICO ONFIELD
             </h2>
         </div>
 
@@ -219,7 +219,7 @@ async function sendEmailWithData(state: any) {
 
         <!-- FOOTER -->
         <div style="background:#f3f4f6;padding:15px;text-align:center;font-size:12px;color:#6b7280;">
-            Report generato automaticamente dal sistema
+            Report generato automaticamente dal sistema, non rispondere alla mail
         </div>
 
     </div>
@@ -229,7 +229,7 @@ async function sendEmailWithData(state: any) {
         await resend.emails.send({
             from: "onboarding@resend.dev",
             to: "d.garzino@isiline.net",
-            subject: `[prova bot FWA] ESITO ${state.tipo} FWA - ${state.cliente}`,
+            subject: `[preverifica FWA] ESITO ${state.tipo} FWA - ${state.cliente}`,
             html: htmlContent,
             attachments
         });
