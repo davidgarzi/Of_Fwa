@@ -85,7 +85,9 @@ app.use("/", (req: any, res: any, next: any) => {
 
 
 
-const resend = new Resend("re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq");
+//const resend = new Resend("re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq"); //garzinodavide
+const resend = new Resend("re_CYvEt6oi_8Jr4Z3TGa9wgAjk1y47ZR3SM");  //d.garzino
+
 
 async function sendEmailWithData(state: any) {
 
@@ -151,7 +153,7 @@ async function sendEmailWithData(state: any) {
 
         await resend.emails.send({
             from: "onboarding@resend.dev",
-            to: "garzinodavide@gmail.com",
+            to: "d.garzino@isiline.net",
             subject: `[prova bot FWA] ESITO ${state.tipo} FWA - ${state.cliente}`,
             html: htmlContent,
             attachments
