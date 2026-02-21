@@ -119,37 +119,95 @@ async function sendEmailWithData(state: any) {
         }
 
         const htmlContent = `
-            <h2> ${state.cliente}</h2>
+<div style="background-color:#f4f6f8;padding:30px 10px;font-family:Arial,Helvetica,sans-serif;">
+    
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+        
+        <!-- HEADER -->
+        <div style="background:#1f2937;padding:20px;text-align:center;">
+            <h2 style="color:#ffffff;margin:0;font-size:22px;">
+                REPORT TECNICO
+            </h2>
+        </div>
 
-            <p><strong>Operatore:</strong> ${state.azienda}</p>
-            <p><strong>Segnale riscontrato:</strong> ${state.segnale}</p>
-            <p>
-            <strong>Esito:</strong>
-            <span style="
-            background-color: ${esitoColor};
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            display: inline-block;
-            ">
-            ${state.esito}
-            </span>
-            </p>
-            <p><strong>Note aggiuntive:</strong> ${state.note}</p>
+        <!-- CLIENTE -->
+        <div style="padding:25px;">
+            <h3 style="margin-top:0;color:#111827;font-size:20px;">
+                ${state.cliente}
+            </h3>
 
-            <hr/>
+            <table width="100%" cellpadding="8" style="border-collapse:collapse;font-size:14px;">
+                <tr>
+                    <td style="color:#6b7280;"><strong>Operatore</strong></td>
+                    <td style="color:#111827;">${state.azienda}</td>
+                </tr>
+                <tr style="background:#f9fafb;">
+                    <td style="color:#6b7280;"><strong>Segnale riscontrato</strong></td>
+                    <td style="color:#111827;">${state.segnale}</td>
+                </tr>
+                <tr>
+                    <td style="color:#6b7280;"><strong>Esito</strong></td>
+                    <td>
+                        <span style="
+                            background-color:${esitoColor};
+                            color:white;
+                            padding:6px 12px;
+                            border-radius:20px;
+                            font-weight:bold;
+                            font-size:13px;
+                            display:inline-block;
+                        ">
+                            ${state.esito}
+                        </span>
+                    </td>
+                </tr>
+            </table>
 
-            <h3>Posizione</h3>
-            <p>Lat: ${state.lat}</p>
-            <p>Lng: ${state.lng}</p>
+            <!-- NOTE -->
+            <div style="margin-top:20px;padding:15px;background:#f9fafb;border-radius:6px;">
+                <strong style="color:#374151;">Note aggiuntive</strong>
+                <p style="margin:8px 0 0 0;color:#111827;font-size:14px;line-height:1.5;">
+                    ${state.note}
+                </p>
+            </div>
 
-            <p>
-                <a href="https://www.google.com/maps?q=${state.lat},${state.lng}" target="_blank">
-                    Apri su Google Maps
-                </a>
-            </p>
-        `;
+            <!-- POSIZIONE -->
+            <div style="margin-top:25px;">
+                <h4 style="margin-bottom:10px;color:#111827;">📍 Posizione</h4>
+                <p style="margin:4px 0;font-size:14px;color:#374151;">
+                    <strong>Lat:</strong> ${state.lat}
+                </p>
+                <p style="margin:4px 0;font-size:14px;color:#374151;">
+                    <strong>Lng:</strong> ${state.lng}
+                </p>
+
+                <div style="margin-top:12px;">
+                    <a href="https://www.google.com/maps?q=${state.lat},${state.lng}" 
+                       target="_blank"
+                       style="
+                        background:#2563eb;
+                        color:white;
+                        text-decoration:none;
+                        padding:10px 18px;
+                        border-radius:6px;
+                        font-size:14px;
+                        display:inline-block;
+                       ">
+                        Apri su Google Maps
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="background:#f3f4f6;padding:15px;text-align:center;font-size:12px;color:#6b7280;">
+            Report generato automaticamente dal sistema
+        </div>
+
+    </div>
+</div>
+`;
 
         await resend.emails.send({
             from: "onboarding@resend.dev",
