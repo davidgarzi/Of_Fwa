@@ -130,8 +130,10 @@ async function sendEmailWithData(state: any) {
             </h2>
         </div>
 
-        <!-- CLIENTE -->
+        <!-- CONTENUTO -->
         <div style="padding:25px;">
+            
+            <!-- CLIENTE -->
             <h3 style="margin-top:0;color:#111827;font-size:20px;">
                 ${state.cliente}
             </h3>
@@ -172,23 +174,37 @@ async function sendEmailWithData(state: any) {
             </div>
 
             <!-- POSIZIONE -->
-            <div style="margin-top:25px;">
-                <h4 style="margin-bottom:10px;color:#111827;">📍 Posizione</h4>
-                <p style="margin:4px 0;font-size:14px;color:#374151;">
-                    <strong>Lat:</strong> ${state.lat}
-                </p>
-                <p style="margin:4px 0;font-size:14px;color:#374151;">
-                    <strong>Lng:</strong> ${state.lng}
-                </p>
+            <div style="margin-top:30px;text-align:center;">
+                
+                <h4 style="
+                    margin-bottom:15px;
+                    color:#111827;
+                    font-size:16px;
+                    letter-spacing:1px;
+                ">
+                    📍 POSIZIONE
+                </h4>
 
-                <div style="margin-top:12px;">
+                <div style="
+                    font-size:15px;
+                    color:#374151;
+                    background:#f9fafb;
+                    display:inline-block;
+                    padding:10px 18px;
+                    border-radius:6px;
+                    font-weight:500;
+                ">
+                    ${state.lat}, ${state.lng}
+                </div>
+
+                <div style="margin-top:18px;">
                     <a href="https://www.google.com/maps?q=${state.lat},${state.lng}" 
                        target="_blank"
                        style="
                         background:#2563eb;
                         color:white;
                         text-decoration:none;
-                        padding:10px 18px;
+                        padding:10px 22px;
                         border-radius:6px;
                         font-size:14px;
                         display:inline-block;
@@ -196,6 +212,7 @@ async function sendEmailWithData(state: any) {
                         Apri su Google Maps
                     </a>
                 </div>
+
             </div>
 
         </div>
