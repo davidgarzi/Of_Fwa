@@ -460,9 +460,38 @@ async function handleTelegramUpdate(update: any) {
                 );
             } else {
 
+                // 🔒 CONTROLLO FINALE DATI
+                const requiredFields = [
+                    state.tipo,
+                    state.azienda,
+                    state.cliente,
+                    state.segnale,
+                    state.esito,
+                    state.note,
+                    state.lat,
+                    state.lng
+                ];
+
+                const hasUndefined = requiredFields.some(
+                    value => value === undefined || value === null
+                );
+
+                // Controllo anche che abbia almeno 1 foto
+                if (hasUndefined || !state.foto || state.foto.length === 0) {
+
+                    await sendTelegramMessage(
+                        chatId,
+                        "❌ Hai sbagliato qualcosa, ho dei valori undefined chiama 3333871022."
+                    );
+
+                    delete userStates[chatId];
+                    return;
+                }
+
+                // ✅ SOLO QUI mando il successo
                 await sendTelegramMessage(chatId, "✅ Procedura completata con successo!");
 
-                // 🔥 Invio email con allegati
+                // 🔥 Invio email
                 await sendEmailWithData(state);
 
                 // 🧹 Pulizia memoria
