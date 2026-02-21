@@ -154,6 +154,7 @@ async function sendEmailWithData(state: any) {
         await resend.emails.send({
             from: "onboarding@resend.dev",
             to: "d.garzino@isiline.net",
+            cc: "assurance@isiline.net",
             subject: `[prova bot FWA] ESITO ${state.tipo} FWA - ${state.cliente}`,
             html: htmlContent,
             attachments
