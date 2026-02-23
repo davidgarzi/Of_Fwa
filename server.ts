@@ -329,9 +329,36 @@ async function handleTelegramUpdate(update: any) {
                 });
             }
 
+            // 🔒 CONTROLLA CHE IL PULSANTE SIA VALIDO PER LO STEP ATTUALE
+            const validStepMap: Record<string, string | undefined> = {
+                "preverifica": undefined, // può cliccare solo se non ha ancora scelto nulla
+                "comino_graziano": "tipo_selezione",
+                "bf_impianti": "tipo_selezione",
+                "cau_valentino": "tipo_selezione",
+                "bono_impianti": "tipo_selezione",
+                "posizione_si": "conferma_posizione",
+                "posizione_no": "conferma_posizione"
+            };
+
+            const expectedStep = validStepMap[data];
+
+            // step virtuale tipo_selezione = subito dopo PREVERIFICA
+            const currentStep = state.step === "tipo" ? "tipo_selezione" : state.step;
+
+            if (expectedStep !== undefined && expectedStep !== currentStep) {
+                // 🔒 click fuori step, ignoralo
+                console.log(`Click ignorato per ${data}, step attuale: ${state.step}`);
+                return;
+            }
+
+            // =============================
+            // LOGICA CALLBACK (rimane identica)
+            // =============================
+
             // STEP 1 - PREVERIFICA / ATTIVAZIONE
             if (data === "preverifica") {
                 state.tipo = "PREVERIFICA";
+                state.step = "tipo"; // passo virtuale per validazione pulsanti
                 await disableButton(callbackQuery.message.message_id, chatId, "preverifica");
 
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
@@ -358,8 +385,6 @@ async function handleTelegramUpdate(update: any) {
 
             // CONFERMA POSIZIONE
             else if (data === "posizione_si") {
-
-                // 🔥 Rimuovo qualsiasi tastiera custom ancora attiva
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Posizione confermata ✅",
@@ -373,8 +398,8 @@ async function handleTelegramUpdate(update: any) {
                 await disableButton(callbackQuery.message.message_id, chatId, data);
 
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
-            } else if (data === "posizione_no") {
-
+            }
+            else if (data === "posizione_no") {
                 await disableButton(callbackQuery.message.message_id, chatId, data);
 
                 state.step = "posizione"; // 🔥 Torno allo step posizione
@@ -388,12 +413,6 @@ async function handleTelegramUpdate(update: any) {
                         one_time_keyboard: true
                     }
                 });
-            }
-            // Pulsante START dopo fine procedura
-            else if (data === "start_again") {
-                await disableButton(callbackQuery.message.message_id, chatId, data);
-                userStates[chatId] = {};
-                await sendTelegramMessage(chatId, "Procedura ricominciata. Scegli operazione:");
             }
 
             return;
