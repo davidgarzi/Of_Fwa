@@ -339,15 +339,17 @@ async function handleTelegramUpdate(update: any) {
                     text: "Scegli azienda:",
                     reply_markup: {
                         inline_keyboard: [
-                            [{ text: "COMINO", callback_data: "comino" }],
-                            [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }]
+                            [{ text: "COMINO GRAZIANO", callback_data: "comino_graziano" }],
+                            [{ text: "BF IMPIANTI", callback_data: "bf_impianti" }],
+                            [{ text: "CAU VALENTINO", callback_data: "cau_valentino" }],
+                            [{ text: "BONO IMPIANTI", callback_data: "bono_impianti" }]
                         ]
                     }
                 });
             }
 
             // STEP 2 - SCELTA AZIENDA
-            else if (data === "comino" || data === "bf_impianti") {
+            else if (data === "comino_graziano" || data === "bf_impianti" || data === "cau_valentino" || data === "bono_impianti") {
                 state.azienda = data;
                 state.step = "cliente";
                 await disableButton(callbackQuery.message.message_id, chatId, data);
