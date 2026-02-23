@@ -358,10 +358,20 @@ async function handleTelegramUpdate(update: any) {
 
             // CONFERMA POSIZIONE
             else if (data === "posizione_si") {
+
+                // 🔥 Rimuovo qualsiasi tastiera custom ancora attiva
+                await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                    chat_id: chatId,
+                    text: "Posizione confermata ✅",
+                    reply_markup: { remove_keyboard: true }
+                });
+
                 state.step = "foto";
                 state.fotoCount = 0;
                 state.foto = [];
+
                 await disableButton(callbackQuery.message.message_id, chatId, data);
+
                 await sendTelegramMessage(chatId, "Perfetto. Inviami 3 foto 📸");
             } else if (data === "posizione_no") {
 
