@@ -493,19 +493,16 @@ async function handleTelegramUpdate(update: any) {
 
         // POSIZIONE
         if (update.message.location) {
-
             state.lat = update.message.location.latitude;
             state.lng = update.message.location.longitude;
             state.step = "conferma_posizione";
 
-            // ✅ 1. Rimuovo la tastiera custom (quella con "Invia posizione 📍")
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: "Posizione ricevuta ✅",
                 reply_markup: { remove_keyboard: true }
             });
 
-            // ✅ 2. Poi mostro i bottoni inline SI / NO
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
                 text: `La posizione è:\nLat: ${state.lat}\nLng: ${state.lng}\nÈ corretta?`,
@@ -516,7 +513,6 @@ async function handleTelegramUpdate(update: any) {
                     ]
                 }
             });
-
             return;
         }
 
