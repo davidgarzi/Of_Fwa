@@ -9,64 +9,6 @@ import axios from 'axios';
 //import fs from "fs-extra";
 import path from "path";
 import { Resend } from 'resend';
-<<<<<<< HEAD
-=======
-const Tesseract = require("tesseract.js");
-import sharp from "sharp";
-// Whitelist ottimizzata per codici seriali e MAC
-const WHITELIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
-
-const SERIAL_REGEX = /PT\d{9,12}/g;  // Per seriali come PT2046020442
-const SERIAL2_REGEX = /\b\d{10,12}\b/g; // Per seriali come 322006615907
-const MAC_REGEX = /\b[0-9A-F]{12,16}(-[0-9A-F]{3,4})?\b/g; // Per mac address tipo 00055997B5F9-B602
-
-export async function extractTextFromTelegramPhotos(fileIds: string[]): Promise<{ serials: string[], macs: string[] }> {
-    let allText = "";
-
-    for (const fileId of fileIds) {
-        const fileRes = await axios.get(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
-        const filePath = fileRes.data.result.file_path;
-        const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
-        const localPath = path.join(__dirname, `${fileId}.jpg`);
-
-        const response = await axios({ url: fileUrl, method: "GET", responseType: "arraybuffer" });
-        await _fs.promises.writeFile(localPath, response.data);
-
-        // Preprocessing più forte con sharp
-        await sharp(localPath)
-            .greyscale()
-            .normalize()
-            .sharpen()  // nitidezza aggiunta
-            .resize({ height: 800 })
-            .toFile(localPath + "_proc.jpg");
-
-        const { data: { text } } = await Tesseract.recognize(
-            localPath + "_proc.jpg",
-            "ita",
-            {
-                tessedit_char_whitelist: WHITELIST,
-                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE, // PSM linea singola
-            }
-        );
-
-        allText += text + "\n";
-
-        _fs.unlinkSync(localPath);
-        _fs.unlinkSync(localPath + "_proc.jpg");
-    }
-
-    // Filtra i codici con regex
-    const serials1 = allText.match(SERIAL_REGEX) || [];
-    const serials2 = allText.match(SERIAL2_REGEX) || [];
-    const macs = allText.match(MAC_REGEX) || [];
-
-    // Unisci i seriali rilevati senza duplicati
-    const serials = Array.from(new Set([...serials1, ...serials2]));
-
-    return { serials, macs };
-}
-
->>>>>>> 47396cf322bfa0df6a5946b1fa30b57ac0188bf9
 
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
@@ -639,57 +581,6 @@ async function handleTelegramUpdate(update: any) {
                     ]
                 }
             });
-            return;
-        }
-
-        // ===============================
-        // ATTIVAZIONE - 4 FOTO + OCR
-        // ===============================
-        if (state.step === "attivazione_foto" && update.message.photo) {
-
-            const photos = update.message.photo;
-            const largestPhoto = photos[photos.length - 1];
-            const fileId = largestPhoto.file_id;
-
-            if (!state.foto.includes(fileId)) {
-                state.foto.push(fileId);
-                state.fotoCount++;
-            }
-
-            if (state.fotoCount < 4) {
-
-                await sendTelegramMessage(
-                    chatId,
-                    `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
-                );
-
-            } else {
-
-                await sendTelegramMessage(chatId, "⏳ Sto leggendo il testo dalle immagini...");
-
-                try {
-
-                    const extractedText = await extractTextFromTelegramPhotos(state.foto);
-
-                    // 🔥 QUI STAMPI IN CONSOLE
-                    console.log("=====================================");
-                    console.log("📄 TESTO ESTRATTO ATTIVAZIONE:");
-                    console.log(extractedText);
-                    console.log("=====================================");
-
-                    await sendTelegramMessage(
-                        chatId,
-                        "✅ TESTO ESTRATTO:\n\n" + extractedText.substring(0, 4000)
-                    );
-
-                } catch (err) {
-                    console.error("Errore OCR:", err);
-                    await sendTelegramMessage(chatId, "❌ Errore durante la lettura delle immagini.");
-                }
-
-                delete userStates[chatId];
-            }
-
             return;
         }
 
