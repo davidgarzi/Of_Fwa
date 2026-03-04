@@ -11,54 +11,57 @@ import path from "path";
 import { Resend } from 'resend';
 const Tesseract = require("tesseract.js");
 import sharp from "sharp";
-// Lista di caratteri ammessi (numeri + lettere maiuscole/minuscole e simboli comuni)
-const WHITELIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/:. ";
+// Whitelist ottimizzata per codici seriali e MAC
+const WHITELIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
 
-export async function extractTextFromTelegramPhotos(fileIds: string[]): Promise<string> {
-    let fullText = "";
+const SERIAL_REGEX = /PT\d{9,12}/g;  // Per seriali come PT2046020442
+const SERIAL2_REGEX = /\b\d{10,12}\b/g; // Per seriali come 322006615907
+const MAC_REGEX = /\b[0-9A-F]{12,16}(-[0-9A-F]{3,4})?\b/g; // Per mac address tipo 00055997B5F9-B602
+
+export async function extractTextFromTelegramPhotos(fileIds: string[]): Promise<{ serials: string[], macs: string[] }> {
+    let allText = "";
 
     for (const fileId of fileIds) {
-        // 1️⃣ Ottieni file path da Telegram
         const fileRes = await axios.get(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
         const filePath = fileRes.data.result.file_path;
         const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
         const localPath = path.join(__dirname, `${fileId}.jpg`);
 
-        // 2️⃣ Scarica immagine
-        const response = await axios({
-            url: fileUrl,
-            method: "GET",
-            responseType: "arraybuffer",
-        });
+        const response = await axios({ url: fileUrl, method: "GET", responseType: "arraybuffer" });
         await _fs.promises.writeFile(localPath, response.data);
 
-        // 3️⃣ Preprocess con Sharp
+        // Preprocessing più forte con sharp
         await sharp(localPath)
-            .greyscale()              // scala di grigi
-            .normalize()              // migliora contrasto e luminosità
-            .resize({ height: 800 })  // altezza fissa per OCR, mantieni aspect ratio
+            .greyscale()
+            .normalize()
+            .sharpen()  // nitidezza aggiunta
+            .resize({ height: 800 })
             .toFile(localPath + "_proc.jpg");
 
-        // 4️⃣ OCR con Tesseract (usa whitelist per leggere solo codici scritti)
         const { data: { text } } = await Tesseract.recognize(
             localPath + "_proc.jpg",
             "ita",
             {
                 tessedit_char_whitelist: WHITELIST,
-                // Imposta Page Segmentation Mode per linee di testo (non blocchi interi)
-                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE, // PSM linea singola
             }
         );
 
-        fullText += "\n\n----- FOTO -----\n\n";
-        fullText += text.trim();
+        allText += text + "\n";
 
-        // 5️⃣ Cancella file temporaneo
         _fs.unlinkSync(localPath);
         _fs.unlinkSync(localPath + "_proc.jpg");
     }
 
-    return fullText;
+    // Filtra i codici con regex
+    const serials1 = allText.match(SERIAL_REGEX) || [];
+    const serials2 = allText.match(SERIAL2_REGEX) || [];
+    const macs = allText.match(MAC_REGEX) || [];
+
+    // Unisci i seriali rilevati senza duplicati
+    const serials = Array.from(new Set([...serials1, ...serials2]));
+
+    return { serials, macs };
 }
 
 
