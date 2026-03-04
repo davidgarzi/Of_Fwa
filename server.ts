@@ -10,49 +10,52 @@ import axios from 'axios';
 import path from "path";
 import { Resend } from 'resend';
 const Tesseract = require("tesseract.js");
-//import { google } from "google-auth-library";
+import sharp from "sharp";
+// Lista di caratteri ammessi (numeri + lettere maiuscole/minuscole e simboli comuni)
+const WHITELIST = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/:. ";
 
-async function extractTextFromTelegramPhotos(fileIds: string[]) {
-
+export async function extractTextFromTelegramPhotos(fileIds: string[]): Promise<string> {
     let fullText = "";
 
     for (const fileId of fileIds) {
-
         // 1️⃣ Ottieni file path da Telegram
         const fileRes = await axios.get(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
         const filePath = fileRes.data.result.file_path;
-
         const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
-
         const localPath = path.join(__dirname, `${fileId}.jpg`);
 
         // 2️⃣ Scarica immagine
-        const writer = _fs.createWriteStream(localPath);
-
         const response = await axios({
             url: fileUrl,
             method: "GET",
-            responseType: "stream"
+            responseType: "arraybuffer",
         });
+        await _fs.promises.writeFile(localPath, response.data);
 
-        response.data.pipe(writer);
+        // 3️⃣ Preprocess con Sharp
+        await sharp(localPath)
+            .greyscale()              // scala di grigi
+            .normalize()              // migliora contrasto e luminosità
+            .resize({ height: 800 })  // altezza fissa per OCR, mantieni aspect ratio
+            .toFile(localPath + "_proc.jpg");
 
-        await new Promise((resolve, reject) => {
-            writer.on("finish", resolve);
-            writer.on("error", reject);
-        });
-
-        // 3️⃣ OCR con Tesseract
+        // 4️⃣ OCR con Tesseract (usa whitelist per leggere solo codici scritti)
         const { data: { text } } = await Tesseract.recognize(
-            localPath,
-            "ita"
+            localPath + "_proc.jpg",
+            "ita",
+            {
+                tessedit_char_whitelist: WHITELIST,
+                // Imposta Page Segmentation Mode per linee di testo (non blocchi interi)
+                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+            }
         );
 
         fullText += "\n\n----- FOTO -----\n\n";
-        fullText += text;
+        fullText += text.trim();
 
-        // 4️⃣ Cancella file temporaneo
+        // 5️⃣ Cancella file temporaneo
         _fs.unlinkSync(localPath);
+        _fs.unlinkSync(localPath + "_proc.jpg");
     }
 
     return fullText;
