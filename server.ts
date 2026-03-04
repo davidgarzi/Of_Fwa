@@ -512,17 +512,33 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
 
-        // NOME CLIENTE
-        if (state.step === "cliente" && text) {
+        // ================================
+        // ATTIVAZIONE - INSERIMENTO NOME CLIENTE
+        // ================================
+        if (state.step === "attivazione_cliente" && text) {
+            state.cliente = text.trim().toUpperCase();
+            state.step = "attivazione_foto";
+            state.foto = [];
+            state.fotoCount = 0;
 
-            state.cliente = text.trim().toUpperCase(); // 🔥 MAIUSCOLO
+            await sendTelegramMessage(
+                chatId,
+                "Perfetto. Inviami 4 foto 📸"
+            );
+            return;
+        }
+
+        // ================================
+        // PREVERIFICA - INSERIMENTO NOME CLIENTE
+        // ================================
+        if (state.step === "cliente" && text) {
+            state.cliente = text.trim().toUpperCase();
             state.step = "segnale";
 
             await sendTelegramMessage(
                 chatId,
                 "Inserisci il segnale riscontrato (numero tra 1 e 98):"
             );
-
             return;
         }
 
