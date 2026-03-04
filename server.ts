@@ -9,7 +9,54 @@ import axios from 'axios';
 //import fs from "fs-extra";
 import path from "path";
 import { Resend } from 'resend';
+const Tesseract = require("tesseract.js");
 //import { google } from "google-auth-library";
+
+async function extractTextFromTelegramPhotos(fileIds: string[]) {
+
+    let fullText = "";
+
+    for (const fileId of fileIds) {
+
+        // 1️⃣ Ottieni file path da Telegram
+        const fileRes = await axios.get(`${TELEGRAM_API}/getFile?file_id=${fileId}`);
+        const filePath = fileRes.data.result.file_path;
+
+        const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+
+        const localPath = path.join(__dirname, `${fileId}.jpg`);
+
+        // 2️⃣ Scarica immagine
+        const writer = _fs.createWriteStream(localPath);
+
+        const response = await axios({
+            url: fileUrl,
+            method: "GET",
+            responseType: "stream"
+        });
+
+        response.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+        });
+
+        // 3️⃣ OCR con Tesseract
+        const { data: { text } } = await Tesseract.recognize(
+            localPath,
+            "ita"
+        );
+
+        fullText += "\n\n----- FOTO -----\n\n";
+        fullText += text;
+
+        // 4️⃣ Cancella file temporaneo
+        _fs.unlinkSync(localPath);
+    }
+
+    return fullText;
+}
 
 
 // Variabili relative a MongoDB ed Express
@@ -280,13 +327,22 @@ async function downloadTelegramFile(fileId: string) {
 
 
 // Funzione per inviare un messaggio Telegram
-async function sendTelegramMessage(chatId: string, text: string) {
+async function sendTelegramMessage(
+    chatId: string,
+    text: string,
+    replyMarkup?: any
+) {
     try {
-        const res = await axios.post(`${TELEGRAM_API}/sendMessage`, {
+        const payload: any = {
             chat_id: chatId,
             text
-        });
-        console.log("Messaggio Telegram inviato:", res.data);
+        };
+
+        if (replyMarkup) {
+            payload.reply_markup = replyMarkup;
+        }
+
+        await axios.post(`${TELEGRAM_API}/sendMessage`, payload);
     } catch (err: any) {
         console.error("Errore invio Telegram:", err.response?.data || err.message);
     }
@@ -329,13 +385,15 @@ async function handleTelegramUpdate(update: any) {
                 });
             }
 
-            // 🔒 CONTROLLA CHE IL PULSANTE SIA VALIDO PER LO STEP ATTUALE
             const validStepMap: Record<string, string | undefined> = {
-                "preverifica": undefined, // può cliccare solo se non ha ancora scelto nulla
+                "preverifica": undefined,      // cliccabile solo all'inizio
+                "attivazione": undefined,      // cliccabile solo all'inizio
+
                 "comino_graziano": "tipo_selezione",
                 "bf_impianti": "tipo_selezione",
                 "cau_valentino": "tipo_selezione",
                 "bono_impianti": "tipo_selezione",
+
                 "posizione_si": "conferma_posizione",
                 "posizione_no": "conferma_posizione"
             };
@@ -374,6 +432,20 @@ async function handleTelegramUpdate(update: any) {
                     }
                 });
             }
+
+            // STEP ATTIVAZIONE
+            else if (data === "attivazione") {
+                state.tipo = "ATTIVAZIONE";
+                state.step = "attivazione_cliente";
+
+                await disableButton(callbackQuery.message.message_id, chatId, "attivazione");
+
+                await sendTelegramMessage(chatId, "Inserisci il nome del cliente (COGNOME E NOME):");
+            }
+
+            // ===============================
+            // ATTIVAZIONE - NOME CLIENTE
+            // ===============================
 
             // STEP 2 - SCELTA AZIENDA
             else if (data === "comino_graziano" || data === "bf_impianti" || data === "cau_valentino" || data === "bono_impianti") {
@@ -542,6 +614,57 @@ async function handleTelegramUpdate(update: any) {
                     ]
                 }
             });
+            return;
+        }
+
+        // ===============================
+        // ATTIVAZIONE - 4 FOTO + OCR
+        // ===============================
+        if (state.step === "attivazione_foto" && update.message.photo) {
+
+            const photos = update.message.photo;
+            const largestPhoto = photos[photos.length - 1];
+            const fileId = largestPhoto.file_id;
+
+            if (!state.foto.includes(fileId)) {
+                state.foto.push(fileId);
+                state.fotoCount++;
+            }
+
+            if (state.fotoCount < 4) {
+
+                await sendTelegramMessage(
+                    chatId,
+                    `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
+                );
+
+            } else {
+
+                await sendTelegramMessage(chatId, "⏳ Sto leggendo il testo dalle immagini...");
+
+                try {
+
+                    const extractedText = await extractTextFromTelegramPhotos(state.foto);
+
+                    // 🔥 QUI STAMPI IN CONSOLE
+                    console.log("=====================================");
+                    console.log("📄 TESTO ESTRATTO ATTIVAZIONE:");
+                    console.log(extractedText);
+                    console.log("=====================================");
+
+                    await sendTelegramMessage(
+                        chatId,
+                        "✅ TESTO ESTRATTO:\n\n" + extractedText.substring(0, 4000)
+                    );
+
+                } catch (err) {
+                    console.error("Errore OCR:", err);
+                    await sendTelegramMessage(chatId, "❌ Errore durante la lettura delle immagini.");
+                }
+
+                delete userStates[chatId];
+            }
+
             return;
         }
 
