@@ -19,6 +19,11 @@ const connectionString: string = process.env.connectionStringAtlas;
 _dotenv.config({ "path": ".env" });
 const app = _express();
 
+//UTENTI AUTORIZZATI
+const AUTHORIZED_USERS = [
+    1022659281,   // tuo ID
+];
+
 // Creazione ed avvio del server
 // app è il router di Express, si occupa di tutta la gestione delle richieste http
 const PORT: number = parseInt(process.env.PORT);
@@ -508,6 +513,16 @@ async function handleTelegramUpdate(update: any) {
 
             // STEP ATTIVAZIONE
             else if (data === "attivazione") {
+                
+                // 🔒 CONTROLLO ACCESSO
+                if (!AUTHORIZED_USERS.includes(chatId)) {
+                    await sendTelegramMessage(
+                        chatId,
+                        "⛔ Non sei abilitato per questa operazione.\nContatta l'amministratore per l'accesso."
+                    );
+                    return;
+                }
+
                 state.tipo = "ATTIVAZIONE";
                 state.step = "attivazione_cliente";
 
