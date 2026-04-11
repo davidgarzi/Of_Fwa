@@ -646,6 +646,68 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
 
+        //AGGIUNTO DI MIO PER FOTO ATTIVAZIONE
+        // FOTO - gestione corretta (no duplicati dimensioni)
+        if (state.step === "attivazione_foto" && update.message.photo) {
+
+            // Prendo SOLO la versione più grande della foto
+            const photos = update.message.photo;
+            const largestPhoto = photos[photos.length - 1];
+            const fileId = largestPhoto.file_id;
+
+            // 🔒 Evito duplicati
+            if (!state.foto.includes(fileId)) {
+                state.foto.push(fileId);
+                state.fotoCount++;
+            }
+
+            if (state.fotoCount < 4) {
+                await sendTelegramMessage(
+                    chatId,
+                    `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
+                );
+            } else {
+
+                // 🔒 CONTROLLO FINALE DATI
+                const requiredFields = [
+                    state.tipo,
+                    state.cliente,
+                ];
+
+                const hasUndefined = requiredFields.some(
+                    value => value === undefined || value === null || value === ""
+                );
+
+                // Controllo anche che abbia 4 foto
+                if (hasUndefined || !state.foto || state.foto.length < 4) {
+
+                    await sendTelegramMessage(
+                        chatId,
+                        "❌ Hai sbagliato qualcosa, dati mancanti o foto insufficienti."
+                    );
+
+                    delete userStates[chatId];
+                    return;
+                }
+
+                // ✅ SUCCESSO
+                await sendTelegramMessage(
+                    chatId,
+                    "✅ Procedura completata con successo ATTIVAZIONE!"
+                );
+
+                // 🔥 Invio email
+                //await sendEmailWithData(state);
+                console.log(state.cliente, state.tipo)
+
+                // 🧹 Pulizia memoria
+                delete userStates[chatId];
+            }
+
+            return;
+        }
+        //FINE AGGIUNTO DI MIO
+
         // RISPOSTA GENERICA
         if (text.toLowerCase().includes("ciao")) {
             await sendTelegramMessage(chatId, "Ciao anche a te! 😊");
