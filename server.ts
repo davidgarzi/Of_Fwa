@@ -280,7 +280,7 @@ async function sendEmailWithDataAttivazione(state: any) {
             <table width="100%" cellpadding="10" style="border-collapse:collapse;font-size:14px;">
                 <tr>
                     <td style="color:#6b7280;"><strong>Tipo</strong></td>
-                    <td style="color:#111827;">${state.tipo}</td>
+                    <td style="color:#111827;">TS INTRACOM 28GHZ + POWERINJECTOR</td>
                 </tr>
 
                 <tr style="background:#f9fafb;">
@@ -349,7 +349,7 @@ async function sendEmailWithDataAttivazione(state: any) {
         await resend.emails.send({
             from: "onboarding@resend.dev",
             to: "d.garzino@isiline.net",
-            subject: `[ATTIVAZIONE FWA] ${state.cliente}`,
+            subject: `[DATI FWA] ${state.cliente}`,
             html: htmlContent,
             attachments
         });
