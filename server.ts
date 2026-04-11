@@ -238,6 +238,128 @@ async function sendEmailWithData(state: any) {
         console.error("Errore invio email:", error);
     }
 }
+
+async function sendEmailWithDataAttivazione(state: any) {
+
+    try {
+
+        // 🔥 scarico tutte le foto
+        const attachments = [];
+
+        for (let i = 0; i < state.foto.length; i++) {
+            const buffer = await downloadTelegramFile(state.foto[i]);
+
+            if (buffer) {
+                attachments.push({
+                    filename: `foto_${i + 1}.jpg`,
+                    content: buffer
+                });
+            }
+        }
+
+        const htmlContent = `
+<div style="background-color:#f4f6f8;padding:30px 10px;font-family:Arial,Helvetica,sans-serif;">
+    
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+        
+        <!-- HEADER -->
+        <div style="background:#065f46;padding:20px;text-align:center;">
+            <h2 style="color:#ffffff;margin:0;font-size:22px;">
+                SERIALI E MAC ADDRESS FWA
+            </h2>
+        </div>
+
+        <!-- CONTENUTO -->
+        <div style="padding:25px;">
+            
+            <!-- CLIENTE -->
+            <h3 style="margin-top:0;color:#111827;font-size:20px;">
+                ${state.cliente}
+            </h3>
+
+            <table width="100%" cellpadding="10" style="border-collapse:collapse;font-size:14px;">
+                <tr>
+                    <td style="color:#6b7280;"><strong>Tipo</strong></td>
+                    <td style="color:#111827;">${state.tipo}</td>
+                </tr>
+
+                <tr style="background:#f9fafb;">
+                    <td style="color:#6b7280;"><strong>Seriale TS</strong></td>
+                    <td style="color:#111827;font-family:monospace;">
+                        ${state.serialTS}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="color:#6b7280;"><strong>MAC Address TS</strong></td>
+                    <td style="color:#111827;font-family:monospace;">
+                        ${state.macTS}
+                    </td>
+                </tr>
+
+                <tr style="background:#f9fafb;">
+                    <td style="color:#6b7280;"><strong>Seriale POE</strong></td>
+                    <td style="color:#111827;font-family:monospace;">
+                        ${state.serialPOE}
+                    </td>
+                </tr>
+            </table>
+
+            <!-- BLOCCO INFO -->
+            <div style="
+                margin-top:25px;
+                padding:15px;
+                background:#ecfdf5;
+                border-radius:6px;
+                text-align:center;
+                font-size:14px;
+                color:#065f46;
+                font-weight:500;
+            ">
+                ✅ Dati attivazione raccolti correttamente
+            </div>
+
+            <!-- FOTO -->
+            <div style="margin-top:30px;text-align:center;">
+                <h4 style="
+                    margin-bottom:10px;
+                    color:#111827;
+                    font-size:16px;
+                    letter-spacing:1px;
+                ">
+                    📸 FOTO ALLEGATE
+                </h4>
+
+                <p style="font-size:13px;color:#6b7280;">
+                    Le immagini sono incluse come allegati nella mail
+                </p>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="background:#f3f4f6;padding:15px;text-align:center;font-size:12px;color:#6b7280;">
+            Report attivazione generato automaticamente
+        </div>
+
+    </div>
+</div>
+`;
+
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: "d.garzino@isiline.net",
+            subject: `[ATTIVAZIONE FWA] ${state.cliente}`,
+            html: htmlContent,
+            attachments
+        });
+
+        console.log("✅ Email attivazione inviata con successo!");
+
+    } catch (error) {
+        console.error("Errore invio email attivazione:", error);
+    }
+}
 //********************************************************************************************//
 // Fine NodeMailer
 //********************************************************************************************//
@@ -734,7 +856,7 @@ async function handleTelegramUpdate(update: any) {
                 );
 
                 // 🔥 Invio email
-                //await sendEmailWithData(state);
+                await sendEmailWithDataAttivazione(state);
                 console.log(state.cliente, state.tipo)
 
                 // 🧹 Pulizia memoria
