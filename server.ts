@@ -468,7 +468,41 @@ async function handleTelegramUpdate(update: any) {
         // ================================
         if (state.step === "attivazione_cliente" && text) {
             state.cliente = text.trim().toUpperCase();
+            state.step = "attivazione_serial_ts";
+
+            await sendTelegramMessage(
+                chatId,
+                "Inserisci il seriale TS:"
+            );
+            return;
+        }
+
+        if (state.step === "attivazione_serial_ts" && text) {
+            state.serialTS = text.trim().toUpperCase();
+            state.step = "attivazione_mac_ts";
+
+            await sendTelegramMessage(
+                chatId,
+                "Inserisci il MAC address TS:"
+            );
+            return;
+        }
+
+        if (state.step === "attivazione_mac_ts" && text) {
+            state.macTS = text.trim().toUpperCase();
+            state.step = "attivazione_serial_poe";
+
+            await sendTelegramMessage(
+                chatId,
+                "Inserisci il seriale POE:"
+            );
+            return;
+        }
+
+        if (state.step === "attivazione_serial_poe" && text) {
+            state.serialPOE = text.trim().toUpperCase();
             state.step = "attivazione_foto";
+
             state.foto = [];
             state.fotoCount = 0;
 
@@ -672,6 +706,9 @@ async function handleTelegramUpdate(update: any) {
                 const requiredFields = [
                     state.tipo,
                     state.cliente,
+                    state.serialTS,
+                    state.macTS,
+                    state.serialPOE
                 ];
 
                 const hasUndefined = requiredFields.some(
