@@ -22,6 +22,8 @@ const app = _express();
 //UTENTI AUTORIZZATI
 const AUTHORIZED_USERS = [
    1022659281,   // tuo ID
+   638210001,
+   1763731277,
 ];
 
 // Creazione ed avvio del server
