@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>IsiFiber</title>
+  <meta charset="UTF-8">  
+  <link rel="icon" href="https://stage.isiline.it/wp-content/uploads/2020/08/isiline_favicon.png" type="image/png" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="index.css">
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="./libreria.js"></script>
+  <script src="./index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
+    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light navb">
+    <a class="navbar-brand" id="logo" style="color: #ad003d; font-weight: bolder;">IsiFiber</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item active home">
+          <a class="nav-link" href="">Home <span class="sr-only">(current)</span></a>
+        </li> 
+        <!-- Dropdown per "Servizi" -->
+        <li class="nav-item">
+          <a class="nav-link" href="#" id="navbarDropdownServizi">
+            Openstream C&D
+          </a>
+        </li>
+        <!-- Dropdown per "Servizi" -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownServizi" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Openstream C&D BK
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdownServizi">
+            <a class="dropdown-item" href="#">Cvlan</a>
+          </div>
+        </li>
+        <!-- Dropdown per "Servizi" -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownServizi" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            FWA
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdownServizi">
+            <a class="dropdown-item" href="#">Cvlan</a>
+            <a class="dropdown-item" href="#">Installazioni</a>
+            <a class="dropdown-item" href="#">Preverifiche</a>
+          </div>
+        </li> 
+      </ul>
+    </div>
+  </nav>
+ <!-- Container principale -->
+ <div class="container mt-5">
+  <div class="row">
+    <!-- Colonna sinistra per i filtri -->
+    <div class="col-12 col-md-3 left-column">
+      <h5>Filtri</h5>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" placeholder="Cerca..." aria-label="Cerca" aria-describedby="button-search">
+        <div class="input-group-append">
+          <button class="btn btn-primary" type="button" id="button-search">Cerca</button>
+        </div>
+      </div>
+
+      <!-- Aggiungi altri filtri qui -->
+      <div class="mb-3">
+        <label for="categorySelect" class="form-label">Categoria</label>
+        <select class="form-select" id="categorySelect">
+          <option value="">Seleziona Categoria</option>
+          <option value="1">Categoria 1</option>
+          <option value="2">Categoria 2</option>
+          <option value="3">Categoria 3</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Colonna destra per la lista delle tabelle -->
+    <div class="col-12 col-md-8 ml-auto right-column">
+      <h5>Lista delle Tabelle</h5>
+      <!-- Tabella di esempio -->
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Categoria</th>
+            <th scope="col">Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">1</th>
+            <td>Elemento 1</td>
+            <td>Categoria 1</td>
+            <td>01/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">2</th>
+            <td>Elemento 2</td>
+            <td>Categoria 2</td>
+            <td>02/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Elemento 3</td>
+            <td>Categoria 3</td>
+            <td>03/01/2025</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+
+
+</html>

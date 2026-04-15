@@ -1,0 +1,192 @@
+html {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  text-align: center;
+  padding-right: 0 !important;
+  padding-top: 57px;
+  width: 100dvw;
+  min-height: 100dvh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  display: flex;
+  position: relative;
+  margin: 0;
+  /* background-image: url('img/forest.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center; */
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.videofullscreen {
+  display: fixed;
+  position: fixed;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  z-index: -100;
+}
+
+.nav-link:hover {
+  cursor: pointer;
+}
+
+.navb {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 80px;
+  z-index: 1000;
+  background: linear-gradient(to bottom, #ff206e, rgba(255, 15, 100, 0));
+}
+
+/* Rimuovi questo blocco */
+.dropdown-menu {
+  min-width: 200px;
+  position: absolute;
+  display: none; /* Impedisce che il menu sia visibile per default */
+}
+
+.dropdown-menu.show {
+  display: block; /* Mostra il menu quando la classe "show" è aggiunta */
+  height: auto;
+  width: auto;
+  background-color: #fdccdd;
+  border: 1px solid #ffb9d1;
+  padding: 0;
+  margin: 0;
+  z-index: 1000;
+}
+
+
+.dropdown-item:hover {
+  background-color: #ffa4c4;
+}
+
+
+nav {
+  background-color: #f0f4e7;
+  height: 70px;
+  position: fixed;
+  top: 0;
+}
+
+.nav-link{
+  color: rgb(0, 0, 0)!important;
+}
+
+.nav-link:hover {
+  color: #ad003d!important;
+  font-weight: bold;
+}
+
+/*.container {
+  margin: auto;
+  height: 100dvh;
+  background-color: #f0f4e7;
+  text-align: center;
+  border: 1px solid transparent;
+  margin-top: 1.5rem;
+  box-shadow: -20px 0 280px 5px rgba(255, 15, 100, 0.7), 20px 0 30px 5px rgba(255, 15, 100, 0.7);
+}*/
+
+/*.container {
+  margin: auto;
+  height: 100dvh;
+  width: 90%; 
+  max-width: 100vw; 
+  text-align: center;
+  border-left: 1px solid grey;
+  border-right: 1px solid grey;
+}*/
+
+ /* Container principale per gestire lo spazio */
+ .container {
+  height: 100%;
+}
+
+.row {
+  height: 100%;
+}
+
+/* Colonna sinistra con i filtri */
+.left-column {
+  position: fixed;
+  background-color: #fdccdd; /* Azzurro chiaro */
+  padding: 20px;
+  border-radius: 10px;
+  height: 100%;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1); /* Leggero ombreggiamento */
+}
+
+/* Colonna destra con la lista/tabelle */
+.right-column {
+  background-color: #ffffff; /* Bianco */
+  padding: 20px;
+  border-radius: 10px;
+  height: 100%;
+}
+
+/* Rendiamo la struttura della colonna più carina */
+.input-group, .form-select {
+  margin-bottom: 15px;
+}
+
+h5 {
+  color: #333;
+}
+
+table th, table td {
+  vertical-align: middle;
+}
+
+/* Assicuriamoci che la griglia sia responsiva */
+@media (max-width: 768px) {
+  .left-column, .right-column {
+    border-radius: 0; /* Nessun bordo arrotondato su schermi più piccoli */
+  }
+}
+
+@media (min-width: 1200px) {
+  .container, .container-lg, .container-md, .container-sm, .container-xl {
+      min-width: 1200px;
+  }
+}
+
+
+@media screen and (max-width: 991px) {
+  .navbar {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+
+  .navbar-toggler-icon {
+    font-size: 2.5rem;
+  }
+
+  body {
+    padding-top: 87px;
+  }
+
+  .container 
+  {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    max-width: none; 
+    height: 100%;
+    margin-bottom: 0;
+    text-align: center;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  body {
+    overflow-y: scroll;
+  }
+}
