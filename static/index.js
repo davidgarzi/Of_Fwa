@@ -9,9 +9,21 @@
 
 $(document).ready(function () {
 
+  checkAuth();
+
+  function checkAuth() {
+    let token = localStorage.getItem("token");
+
+    if (!token || token === "undefined" || token === "null") {
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+    }
+  }
 
   $('.dropdown').hover(
+
     function () {
+        richiestaMomentanea();
       $(this).find('.dropdown-menu').addClass('show');
     },
     function () {

@@ -137,6 +137,46 @@ app.post("/api/login", async (req, res, next) => {
     rq.finally(() => client.close());
 });
 
+// 11. Controllo del token
+app.use("/api/", (req: any, res: any, next: any) => {
+    console.log("Controllo tokenccccccccccc");
+    console.log(req.headers["authorization"]);
+    if (!req.headers["authorization"]) {
+        console.log("Token mancante");
+        res.status(403).send("Token mancante");
+    }
+    else {
+        let token = req.headers["authorization"];
+        _jwt.verify(token, ENCRYPTION_KEY, (err, payload) => {
+            if (err) {
+                res.status(403).send(`Token non valido: ${err}`);
+            }
+            else {
+                let newToken = createToken(payload);
+                console.log(newToken);
+                res.setHeader("authorization", newToken);
+                // Fa si che la header authorization venga restituita al client
+                res.setHeader("access-control-expose-headers", "authorization");
+                req["payload"] = payload;
+                next();
+            }
+        });
+    }
+});
+
+function createToken(data) {
+    let currentTimeSeconds = Math.floor(new Date().getTime() / 1000);
+    let payload = {
+        "_id": data._id,
+        "username": data.username,
+        // Se c'è iat mette iat altrimenti mette currentTimeSeconds
+        "iat": data.iat || currentTimeSeconds,
+        "exp": currentTimeSeconds + parseInt(process.env.TOKEN_EXPIRE_DURATION)
+    }
+    let token = _jwt.sign(payload, ENCRYPTION_KEY);
+    return token;
+}
+
 app.get("/api/momento", async (req, res, next) => {
     res.send("ok");
 });
@@ -988,44 +1028,6 @@ app.get("/api/telegram/info", async (req: any, res: any) => {
 //********************************************************************************************//
 // Fine codice Telegram Bot
 //********************************************************************************************//
-app.use("/api/", (req: any, res: any, next: any) => {
-    console.log("Controllo tokenccccccccccc");
-    console.log(req.headers["authorization"]);
-    if (!req.headers["authorization"]) {
-        console.log("Token mancante");
-        res.status(403).send("Token mancante");
-    }
-    else {
-        let token = req.headers["authorization"];
-        _jwt.verify(token, ENCRYPTION_KEY, (err, payload) => {
-            if (err) {
-                res.status(403).send(`Token non valido: ${err}`);
-            }
-            else {
-                let newToken = createToken(payload);
-                console.log(newToken);
-                res.setHeader("authorization", newToken);
-                // Fa si che la header authorization venga restituita al client
-                res.setHeader("access-control-expose-headers", "authorization");
-                req["payload"] = payload;
-                next();
-            }
-        });
-    }
-});
-
-function createToken(data) {
-    let currentTimeSeconds = Math.floor(new Date().getTime() / 1000);
-    let payload = {
-        "_id": data._id,
-        "username": data.username,
-        // Se c'è iat mette iat altrimenti mette currentTimeSeconds
-        "iat": data.iat || currentTimeSeconds,
-        "exp": currentTimeSeconds + parseInt(process.env.TOKEN_EXPIRE_DURATION)
-    }
-    let token = _jwt.sign(payload, ENCRYPTION_KEY);
-    return token;
-}
 
 //********************************************************************************************//
 // Default route e gestione degli errori

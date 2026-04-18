@@ -90,6 +90,7 @@ $(document).ready(function () {
 				}
 			});
 			request.then((response) => {
+				console.log(response.data.token);
 				localStorage.setItem("username", _username.val());
 				window.location.href = "index.html";
 			})
