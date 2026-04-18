@@ -6,25 +6,35 @@ import _dotenv from "dotenv";
 import _cors from "cors";
 import _fileUpload from "express-fileupload";
 import axios from 'axios';
+import _jwt from "jsonwebtoken";
+import _bcrypt from "bcryptjs";
 //import fs from "fs-extra";
 import path from "path";
 import { Resend } from 'resend';
 
+
+_dotenv.config({ "path": ".env" });
 // Variabili relative a MongoDB ed Express
 import { MongoClient, ObjectId } from "mongodb";
 const DBNAME = process.env.DBNAME;
 const connectionString: string = process.env.connectionStringAtlas;
+const PRIVATE_KEY = _fs.readFileSync("./keys/privateKey.pem", "utf8");
+const CERTIFICATE = _fs.readFileSync("./keys/certificate.crt", "utf8");
+const ENCRYPTION_KEY = _fs.readFileSync("./keys/encryptionKey.txt", "utf8");
+const CREDENTIALS = { "key": PRIVATE_KEY, "cert": CERTIFICATE };
 
 // Lettura delle password e parametri fondamentali
-_dotenv.config({ "path": ".env" });
+
+
 const app = _express();
 
 //UTENTI AUTORIZZATI
 const AUTHORIZED_USERS = [
-   1022659281,   // tuo ID
-   638210001,
-   1763731277,
+    1022659281,   // tuo ID
+    638210001,
+    1763731277,
 ];
+
 
 // Creazione ed avvio del server
 // app è il router di Express, si occupa di tutta la gestione delle richieste http
@@ -87,7 +97,49 @@ app.use("/", (req: any, res: any, next: any) => {
 // Inizio NodeMailer
 //********************************************************************************************//
 
+app.post("/api/login", async (req, res, next) => {
+    console.log(DBNAME);
+    let username = req["body"].username;
+    let pwd = req["body"].password;
+    console.log(username, pwd)
 
+    const client = new MongoClient(connectionString);
+    await client.connect();
+    const collection = client.db(DBNAME).collection("login");
+    let regex = new RegExp(`^${username}$`, "i");
+    let rq = collection.findOne({ "username": regex }, { "projection": { "username": 1, "password": 1 } });
+    rq.then((dbUser) => {
+        if (!dbUser) {
+            res.status(401).send("Username non valido");
+        }
+        else {
+            _bcrypt.compare(pwd, dbUser.password, (err, success) => {
+                if (err) {
+                    res.status(500).send(`Bcrypt compare error: ${err.message}`);
+                }
+                else {
+                    if (!success) {
+                        res.status(401).send("Password non valida");
+                    }
+                    else {
+                        let token = createToken(dbUser);
+                        console.log(token);
+                        res.setHeader("authorization", token);
+                        // Fa si che la header authorization venga restituita al client
+                        res.setHeader("access-control-expose-headers", "authorization");
+                        res.send({ "ris": "ok" });
+                    }
+                }
+            })
+        }
+    });
+    rq.catch((err) => res.status(500).send(`Errore esecuzione query: ${err.message}`));
+    rq.finally(() => client.close());
+});
+
+app.get("/api/momento", async (req, res, next) => {
+    res.send("ok");
+});
 
 
 //const resend = new Resend("re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq"); //garzinodavide
@@ -936,6 +988,45 @@ app.get("/api/telegram/info", async (req: any, res: any) => {
 //********************************************************************************************//
 // Fine codice Telegram Bot
 //********************************************************************************************//
+app.use("/api/", (req: any, res: any, next: any) => {
+    console.log("Controllo tokenccccccccccc");
+    console.log(req.headers["authorization"]);
+    if (!req.headers["authorization"]) {
+        console.log("Token mancante");
+        res.status(403).send("Token mancante");
+    }
+    else {
+        let token = req.headers["authorization"];
+        _jwt.verify(token, ENCRYPTION_KEY, (err, payload) => {
+            if (err) {
+                res.status(403).send(`Token non valido: ${err}`);
+            }
+            else {
+                let newToken = createToken(payload);
+                console.log(newToken);
+                res.setHeader("authorization", newToken);
+                // Fa si che la header authorization venga restituita al client
+                res.setHeader("access-control-expose-headers", "authorization");
+                req["payload"] = payload;
+                next();
+            }
+        });
+    }
+});
+
+function createToken(data) {
+    let currentTimeSeconds = Math.floor(new Date().getTime() / 1000);
+    let payload = {
+        "_id": data._id,
+        "username": data.username,
+        // Se c'è iat mette iat altrimenti mette currentTimeSeconds
+        "iat": data.iat || currentTimeSeconds,
+        "exp": currentTimeSeconds + parseInt(process.env.TOKEN_EXPIRE_DURATION)
+    }
+    let token = _jwt.sign(payload, ENCRYPTION_KEY);
+    return token;
+}
+
 //********************************************************************************************//
 // Default route e gestione degli errori
 //********************************************************************************************//

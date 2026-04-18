@@ -1,192 +1,190 @@
-html {
+/* ===== RESET ===== */
+html, body {
   margin: 0;
   padding: 0;
-}
-
-body {
-  text-align: center;
-  padding-right: 0 !important;
-  padding-top: 57px;
-  width: 100dvw;
-  min-height: 100dvh;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  display: flex;
-  position: relative;
-  margin: 0;
-  /* background-image: url('img/forest.jpg');
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-position: center; */
   font-family: Arial, Helvetica, sans-serif;
+  background-color: #f0f4e7;
 }
 
-.videofullscreen {
-  display: fixed;
-  position: fixed;
-  bottom: 0;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-  z-index: -100;
-}
-
-.nav-link:hover {
-  cursor: pointer;
-}
-
+/* ===== NAVBAR ===== */
 .navb {
   position: fixed;
   top: 0;
   width: 100%;
-  height: 80px;
+  height: 70px;
   z-index: 1000;
-  background: linear-gradient(to bottom, #ff206e, rgba(255, 15, 100, 0));
+  background: linear-gradient(to right, #ff206e, #ad003d);
 }
 
-/* Rimuovi questo blocco */
-.dropdown-menu {
-  min-width: 200px;
-  position: absolute;
-  display: none; /* Impedisce che il menu sia visibile per default */
+.navbar-brand {
+  font-weight: bold;
+  color: white !important;
 }
 
-.dropdown-menu.show {
-  display: block; /* Mostra il menu quando la classe "show" è aggiunta */
-  height: auto;
-  width: auto;
+.nav-link {
+  color: white !important;
+}
+
+.nav-link:hover {
+  color: #ffd6e5 !important;
+}
+
+/* ===== BODY OFFSET ===== */
+body {
+  padding-top: 80px;
+}
+
+/* ===== LAYOUT ===== */
+.main-container {
+  padding: 10px;
+}
+
+/* colonne */
+.left-column,
+.right-column {
+  border-radius: 10px;
+  padding: 15px;
+}
+
+/* sidebar */
+.left-column {
   background-color: #fdccdd;
-  border: 1px solid #ffb9d1;
-  padding: 0;
-  margin: 0;
-  z-index: 1000;
+  margin-bottom: 15px;
 }
 
+/* contenuto */
+.right-column {
+  background-color: white;
+}
+
+/* ===== INPUT ===== */
+.input-group input {
+  border-radius: 6px 0 0 6px;
+  border: 1px solid #ccc;
+}
+
+.input-group button {
+  border-radius: 0 6px 6px 0;
+  background-color: #ad003d;
+  border: none;
+  color: white;
+}
+
+.input-group button:hover {
+  background-color: #8a002f;
+}
+
+.form-select {
+  border-radius: 6px;
+}
+
+/* ===== TABLE ===== */
+.table {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table thead {
+  background-color: #fdccdd;
+}
+
+.table th {
+  color: #ad003d;
+  font-weight: bold;
+}
+
+.table td {
+  color: #333;
+}
+
+/* MOBILE FIX: tabella scroll */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ===== DROPDOWN =====
+.dropdown-menu {
+  background-color: #fdccdd;
+  border: none;
+  border-radius: 8px;
+}
+*/
 
 .dropdown-item:hover {
   background-color: #ffa4c4;
 }
 
-
-nav {
-  background-color: #f0f4e7;
-  height: 70px;
-  position: fixed;
-  top: 0;
-}
-
-.nav-link{
-  color: rgb(0, 0, 0)!important;
-}
-
-.nav-link:hover {
-  color: #ad003d!important;
+/* ===== TITOLI ===== */
+h5 {
+  color: #ad003d;
   font-weight: bold;
 }
 
-/*.container {
-  margin: auto;
-  height: 100dvh;
-  background-color: #f0f4e7;
-  text-align: center;
-  border: 1px solid transparent;
-  margin-top: 1.5rem;
-  box-shadow: -20px 0 280px 5px rgba(255, 15, 100, 0.7), 20px 0 30px 5px rgba(255, 15, 100, 0.7);
-}*/
-
-/*.container {
-  margin: auto;
-  height: 100dvh;
-  width: 90%; 
-  max-width: 100vw; 
-  text-align: center;
-  border-left: 1px solid grey;
-  border-right: 1px solid grey;
-}*/
-
- /* Container principale per gestire lo spazio */
- .container {
-  height: 100%;
-}
-
-.row {
-  height: 100%;
-}
-
-/* Colonna sinistra con i filtri */
-.left-column {
-  position: fixed;
-  background-color: #fdccdd; /* Azzurro chiaro */
-  padding: 20px;
-  border-radius: 10px;
-  height: 100%;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1); /* Leggero ombreggiamento */
-}
-
-/* Colonna destra con la lista/tabelle */
-.right-column {
-  background-color: #ffffff; /* Bianco */
-  padding: 20px;
-  border-radius: 10px;
-  height: 100%;
-}
-
-/* Rendiamo la struttura della colonna più carina */
-.input-group, .form-select {
-  margin-bottom: 15px;
-}
-
-h5 {
-  color: #333;
-}
-
-table th, table td {
-  vertical-align: middle;
-}
-
-/* Assicuriamoci che la griglia sia responsiva */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .left-column, .right-column {
-    border-radius: 0; /* Nessun bordo arrotondato su schermi più piccoli */
-  }
-}
 
-@media (min-width: 1200px) {
-  .container, .container-lg, .container-md, .container-sm, .container-xl {
-      min-width: 1200px;
-  }
-}
-
-
-@media screen and (max-width: 991px) {
-  .navbar {
-    font-size: 2rem;
-    font-weight: bold;
+  /* stack colonne */
+  .row {
+    display: flex;
+    flex-direction: column;
   }
 
-  .navbar-toggler-icon {
-    font-size: 2.5rem;
-  }
-
-  body {
-    padding-top: 87px;
-  }
-
-  .container 
-  {
+  .left-column {
     width: 100%;
-    margin: 0;
-    padding: 0;
-    max-width: none; 
-    height: 100%;
-    margin-bottom: 0;
-    text-align: center;
+  }
+
+  .right-column {
+    width: 100%;
+  }
+
+  /* navbar più compatta */
+  .navbar {
+    font-size: 14px;
+  }
+
+  /* tabella più leggibile */
+  .table {
+    font-size: 13px;
   }
 }
 
-@media screen and (max-width: 767px) {
-  body {
-    overflow-y: scroll;
+/* ===== MOBILE NAV FIX ===== */
+@media (max-width: 991px) {
+
+  .navb {
+    height: auto;
+    padding: 10px;
+  }
+
+  .navbar-collapse {
+    background: linear-gradient(to bottom, #ff206e, #ad003d);
+    margin-top: 10px;
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  .navbar-nav {
+    text-align: left;
+  }
+
+  .nav-item {
+    margin-bottom: 10px;
+  }
+
+  .nav-link {
+    font-size: 16px;
+    padding: 10px;
+  }
+
+  .dropdown-menu {
+    background-color: #fdccdd;
+    border-radius: 8px;
+    margin-left: 10px;
+  }
+
+  .dropdown-item {
+    color: #ad003d;
   }
 }
