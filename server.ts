@@ -1025,6 +1025,109 @@ app.get("/api/telegram/info", async (req: any, res: any) => {
     }
 });
 
+app.get("/api/totoSpedizioni", async (req, res, next) => {
+    const client = new MongoClient(connectionString);
+
+    try {
+        await client.connect();
+
+        let collection = client.db(DBNAME).collection("spedizioni");
+
+        // prendo tutte le spedizioni
+        let spedizioni = await collection.find({}).toArray();
+
+        // estraggo tutti i seriali e li metto in un unico array
+        let tuttiSeriali = [];
+
+        spedizioni.forEach(spedizione => {
+            if (spedizione.seriali && Array.isArray(spedizione.seriali)) {
+                tuttiSeriali.push(...spedizione.seriali);
+            }
+        });
+
+        // restituisco array unico
+        res.send(tuttiSeriali);
+
+    } catch (err) {
+        res.status(500).send(`Errore esecuzione query: ${err}`);
+    } finally {
+        client.close();
+    }
+});
+
+app.post("/api/modificaSeriale", async (req, res) => {
+
+    const { codice_seriale, locazione, note } = req.body;
+
+    if (!codice_seriale) {
+        return res.status(400).send("codice_seriale mancante");
+    }
+
+    const client = new MongoClient(connectionString);
+
+    try {
+        await client.connect();
+
+        const collection = client.db("isifiber").collection("spedizioni");
+
+        // aggiorna il documento che contiene quel seriale dentro l'array
+        const result = await collection.updateOne(
+            { "seriali.codice_seriale": codice_seriale },
+            {
+                $set: {
+                    "seriali.$.locazione": locazione,
+                    "seriali.$.note": note
+                }
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).send("Seriale non trovato");
+        }
+
+        res.send({
+            success: true,
+            message: "Seriale aggiornato correttamente",
+            result
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Errore server");
+    } finally {
+        await client.close();
+    }
+});
+
+function inviaRichiesta(method, url, parameters = {}) {
+    let config = {
+        "baseURL": "",
+        "url": url,
+        "method": method.toUpperCase(),
+        "headers": {
+            "Accept": "application/json",
+        },
+        "timeout": 15000,
+        "responseType": "json",
+    }
+
+    console.log(config);
+
+    if (parameters instanceof FormData) {
+        config.headers["Content-Type"] = 'multipart/form-data;'
+        config["data"] = parameters     // Accept FormData, File, Blob
+    }
+    else if (method.toUpperCase() == "GET") {
+        config.headers["Content-Type"] = 'application/x-www-form-urlencoded;charset=utf-8'
+        config["params"] = parameters
+    }
+    else {
+        config.headers["Content-Type"] = 'application/json; charset=utf-8'
+        config["data"] = parameters
+    }
+    return axios(config as any);
+}
+
 //********************************************************************************************//
 // Fine codice Telegram Bot
 //********************************************************************************************//
