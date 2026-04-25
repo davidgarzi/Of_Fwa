@@ -1057,6 +1057,26 @@ app.get("/api/telegram/info", async (req: any, res: any) => {
     }
 });
 
+app.get("/api/backupSpedizioni", async (req, res) => {
+
+    const client = new MongoClient(connectionString);
+
+    try {
+        await client.connect();
+
+        const collection = client.db(DBNAME).collection("spedizioni");
+
+        const dati = await collection.find({}).toArray();
+
+        res.send(dati);
+
+    } catch (err) {
+        res.status(500).send(`Errore backup: ${err}`);
+    } finally {
+        await client.close();
+    }
+});
+
 app.get("/api/totoSpedizioni", async (req, res, next) => {
     const client = new MongoClient(connectionString);
 

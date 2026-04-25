@@ -19,7 +19,7 @@ $(document).ready(function () {
 	function loginGoogle() {
 		/*global google*/
 		let file = require('fs');
-		
+
 		google.accounts.id.initialize({
 			"client_id": OAUTH_CREDENTIALS.client_id,
 			"callback": function (response) {

@@ -115,6 +115,29 @@ $(document).ready(function () {
     URL.revokeObjectURL(url);
   });
 
+  $("#btnBackupSpedizioni").on("click", function () {
+
+    let request = inviaRichiesta("GET", "/api/backupSpedizioni");
+
+    request.then((res) => {
+
+      let jsonString = JSON.stringify(res.data, null, 2); // 👈 indentato
+
+      let blob = new Blob([jsonString], { type: "text/plain;charset=utf-8;" });
+      let url = URL.createObjectURL(blob);
+
+      let a = document.createElement("a");
+      a.href = url;
+      a.download = "backup_spedizioni.txt";
+      a.click();
+
+      URL.revokeObjectURL(url);
+
+    });
+
+    request.catch(err => errore(err));
+  });
+
   $("#btnSalvaModifica").on("click", function () {
 
     let data = {
