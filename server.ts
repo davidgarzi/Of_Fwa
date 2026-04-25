@@ -714,7 +714,7 @@ async function handleTelegramUpdate(update: any) {
             state.serialTS = serialTS;
 
             // 🔥 controllo pattern
-            if (serialTS.startsWith("322")) {
+            if (serialTS.startsWith("3")) {
 
                 const ok = await setLocazioneINST(serialTS);
 
@@ -725,7 +725,7 @@ async function handleTelegramUpdate(update: any) {
                 }
 
             } else {
-                await sendTelegramMessage(chatId, "⚠️ Seriale TS non valido (deve iniziare con 322)");
+                await sendTelegramMessage(chatId, "⚠️ Seriale TS non valido (deve iniziare con 3)");
             }
 
             state.step = "attivazione_mac_ts";
