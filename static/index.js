@@ -1,4 +1,7 @@
 $(document).ready(function () {
+  let datiGlobali = [];
+  let paginaCorrente = 1;
+  const righePerPagina = 10;
 
   checkAuth();
 
@@ -11,6 +14,40 @@ $(document).ready(function () {
       return;
     }
   }
+
+  $("#button-search").on("click", cercaDati);
+
+  $("#inputCerca").on("keypress", function (e) {
+    if (e.which === 13) {
+      cercaDati();
+    }
+  });
+
+  $("#btnContaRecord").on("click", function () {
+
+    let totali = datiGlobali.length;
+
+    let visualizzati = $("#tabellaPrincipale tbody tr").length;
+
+    Swal.fire({
+      icon: "info",
+      title: "Conteggio record",
+      html: `
+      <b>Totali:</b> ${totali}<br>
+      <b>Visualizzati (pagina corrente):</b> ${visualizzati}
+    `
+    });
+  });
+
+  $("#btnVisualizzaTutti").on("click", function () {
+
+    // reset campo ricerca
+    $("#inputCerca").val("");
+
+    // ricarica tutti i dati dal DB
+    richiestaTotoSpedizioni();
+
+  });
 
   $('.dropdown').hover(
     function () {
@@ -43,6 +80,39 @@ $(document).ready(function () {
 
     // apro popup
     $("#modalModificaSeriale").modal("show");
+  });
+
+  $("#btnExportCSV").on("click", function () {
+
+    if (!datiGlobali || datiGlobali.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Nessun dato",
+        text: "Non ci sono record da esportare"
+      });
+      return;
+    }
+
+    // intestazioni CSV
+    let csv = "LOCAZIONE,SERIALE,ARTICOLO,NOTE\n";
+
+    datiGlobali.forEach(item => {
+      csv += `"${item.locazione || ""}",`;
+      csv += `="${item.codice_seriale || ""}",`;
+      csv += `"${item.articolo || ""}",`;
+      csv += `"${item.note || ""}"\n`;
+    });
+
+    // crea file
+    let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "spedizioni.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
   });
 
   $("#btnSalvaModifica").on("click", function () {
@@ -88,6 +158,24 @@ $(document).ready(function () {
       });
   }
 
+  function cercaDati() {
+    let testo = $("#inputCerca").val();
+
+    let request = inviaRichiesta('GET', '/api/filtroCerca', {
+      search: testo
+    });
+
+    request.then((response) => {
+      datiGlobali = response.data;
+      paginaCorrente = 1;
+
+      renderTabella();
+      renderPaginazione();
+    });
+
+    request.catch(err => errore(err));
+  }
+
   // -------------------------
   // spedizioni
   // -------------------------
@@ -98,30 +186,11 @@ $(document).ready(function () {
       .then((response) => {
         console.log(response);
 
-        let righe = "";
+        datiGlobali = response.data;
+        paginaCorrente = 1;
 
-        response.data.forEach(function (item) {
-
-          righe += `
-            <tr>
-                <th scope="row">${item.locazione}</th>
-                <td>${item.codice_seriale}</td>
-                <td>${item.articolo}</td>
-                <td>${item.note}</td>
-                <td class="text-center align-middle">
-                    <button class="btn btn-modifica p-0 border-0 bg-transparent d-flex align-items-center justify-content-center mx-auto"
-                            data-seriale="${item.codice_seriale}"
-                            style="width: 40px; height: 40px;">
-                        <span style="font-size: 1.6rem; line-height: 1;">
-                            ✏️
-                        </span>
-                    </button>
-                </td>
-            </tr>
-          `;
-        });
-
-        $("#tabellaPrincipale tbody").html(righe);
+        renderTabella();
+        renderPaginazione();
       })
       .catch(function (err) {
         console.log(err.response?.status);
@@ -134,4 +203,78 @@ $(document).ready(function () {
       });
   }
 
+  $(document).on("click", ".btn-prev", function () {
+    if (paginaCorrente > 1) {
+      paginaCorrente--;
+      renderTabella();
+      renderPaginazione();
+    }
+  });
+
+  $(document).on("click", ".btn-next", function () {
+    let totalePagine = Math.ceil(datiGlobali.length / righePerPagina);
+
+    if (paginaCorrente < totalePagine) {
+      paginaCorrente++;
+      renderTabella();
+      renderPaginazione();
+    }
+  });
+
+  function creaRiga(item) {
+    return `
+    <tr>
+        <th scope="row">${item.locazione}</th>
+        <td>${item.codice_seriale}</td>
+        <td>${item.articolo}</td>
+        <td>${item.note}</td>
+        <td class="text-center align-middle">
+            <button class="btn btn-modifica p-0 border-0 bg-transparent d-flex align-items-center justify-content-center mx-auto"
+                    data-seriale="${item.codice_seriale}"
+                    style="width: 40px; height: 40px;">
+                <span style="font-size: 1.6rem; line-height: 1;">
+                    ✏️
+                </span>
+            </button>
+        </td>
+    </tr>
+  `;
+  }
+
+  function renderTabella() {
+    let start = (paginaCorrente - 1) * righePerPagina;
+    let end = start + righePerPagina;
+
+    let datiPagina = datiGlobali.slice(start, end);
+
+    let righe = datiPagina.map(creaRiga).join("");
+
+    $("#tabellaPrincipale tbody").html(righe);
+  }
+
+  function renderPaginazione() {
+    let totalePagine = Math.ceil(datiGlobali.length / righePerPagina);
+
+    let html = `
+    <div class="d-flex justify-content-center align-items-center gap-3">
+
+      <button class="btn btn-sm btn-light btn-prev" ${paginaCorrente === 1 ? "disabled" : ""}>
+        ←
+      </button>
+
+      <span>
+        Pagina ${paginaCorrente} / ${totalePagine}
+      </span>
+
+      <button class="btn btn-sm btn-light btn-next" ${paginaCorrente === totalePagine ? "disabled" : ""}>
+        →
+      </button>
+
+    </div>
+  `;
+
+    $("#paginazione").html(html);
+  }
+
 });
+

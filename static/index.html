@@ -72,7 +72,7 @@
       <div class="col-12 col-md-3 left-column">
         <h5>Filtri</h5>
         <div class="input-group mb-3">
-          <input type="text" class="form-control" placeholder="Cerca..." aria-label="Cerca"
+          <input type="text" id="inputCerca" class="form-control" placeholder="Cerca..." aria-label="Cerca"
             aria-describedby="button-search">
           <div class="input-group-append">
             <button class="btn btn-primary" type="button" id="button-search">Cerca</button>
@@ -82,12 +82,30 @@
         <!-- Aggiungi altri filtri qui -->
         <div class="mb-3">
           <label for="categorySelect" class="form-label">Categoria</label>
-          <select class="form-select" id="categorySelect">
+          <select class="form-select" id="categorySelect" disabled>
             <option value="">Seleziona Categoria</option>
             <option value="1">Categoria 1</option>
             <option value="2">Categoria 2</option>
             <option value="3">Categoria 3</option>
           </select>
+        </div>
+
+        <div class="mb-3">
+          <button id="btnContaRecord" class="btn btn-success w-100">
+            Conta record
+          </button>
+        </div>
+
+        <div class="mb-3">
+          <button id="btnVisualizzaTutti" class="btn btn-primary w-100">
+            Visualizza tutti
+          </button>
+        </div>
+
+        <div class="mb-3">
+          <button id="btnExportCSV" class="btn btn-warning w-100">
+            Esporta CSV
+          </button>
         </div>
       </div>
 
@@ -108,6 +126,7 @@
             <tbody>
             </tbody>
           </table>
+          <div id="paginazione" class="mt-3 text-center"></div>
         </div>
       </div>
     </div>

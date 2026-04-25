@@ -709,15 +709,32 @@ async function handleTelegramUpdate(update: any) {
         }
 
         if (state.step === "attivazione_serial_ts" && text) {
-            state.serialTS = text.trim().toUpperCase();
+
+            const serialTS = text.trim().toUpperCase();
+            state.serialTS = serialTS;
+
+            // 🔥 controllo pattern
+            if (serialTS.startsWith("322")) {
+
+                const ok = await setLocazioneINST(serialTS);
+
+                if (ok) {
+                    await sendTelegramMessage(chatId, "✅ TS trovato e aggiornato a INST");
+                } else {
+                    await sendTelegramMessage(chatId, "⚠️ TS non trovato nel database");
+                }
+
+            } else {
+                await sendTelegramMessage(chatId, "⚠️ Seriale TS non valido (deve iniziare con 322)");
+            }
+
             state.step = "attivazione_mac_ts";
 
-            await sendTelegramMessage(
-                chatId,
-                "Inserisci il MAC address TS:"
-            );
+            await sendTelegramMessage(chatId, "Inserisci il MAC address TS:");
             return;
         }
+
+        ///
 
         if (state.step === "attivazione_mac_ts" && text) {
             state.macTS = text.trim().toUpperCase();
@@ -731,16 +748,31 @@ async function handleTelegramUpdate(update: any) {
         }
 
         if (state.step === "attivazione_serial_poe" && text) {
-            state.serialPOE = text.trim().toUpperCase();
+
+            const serialPOE = text.trim().toUpperCase();
+            state.serialPOE = serialPOE;
+
+            // 🔥 controllo pattern POE
+            if (serialPOE.startsWith("PT")) {
+
+                const ok = await setLocazioneINST(serialPOE);
+
+                if (ok) {
+                    await sendTelegramMessage(chatId, "✅ POE trovato e aggiornato a INST");
+                } else {
+                    await sendTelegramMessage(chatId, "⚠️ POE non trovato nel database");
+                }
+
+            } else {
+                await sendTelegramMessage(chatId, "⚠️ Seriale POE non valido (deve iniziare con PT)");
+            }
+
             state.step = "attivazione_foto";
 
             state.foto = [];
             state.fotoCount = 0;
 
-            await sendTelegramMessage(
-                chatId,
-                "Perfetto. Inviami 4 foto 📸"
-            );
+            await sendTelegramMessage(chatId, "Perfetto. Inviami 4 foto 📸");
             return;
         }
 
@@ -1098,6 +1130,92 @@ app.post("/api/modificaSeriale", async (req, res) => {
         await client.close();
     }
 });
+
+app.get("/api/filtroCerca", async (req, res) => {
+    const client = new MongoClient(connectionString);
+
+    try {
+        await client.connect();
+
+        const testo = (req.query.search as string || "").trim();
+        const collection = client.db(DBNAME).collection("spedizioni");
+
+        let query = {};
+
+        if (testo !== "") {
+            const regex = new RegExp(testo, "i");
+
+            query = {
+                seriali: {
+                    $elemMatch: {
+                        $or: [
+                            { codice_seriale: regex },
+                            { locazione: regex },
+                            { articolo: regex },
+                            { note: regex }
+                        ]
+                    }
+                }
+            };
+        }
+
+        const spedizioni = await collection.find(query).toArray();
+
+        const regex = testo ? new RegExp(testo, "i") : null;
+
+        const tuttiSeriali: any[] = [];
+
+        spedizioni.forEach(spedizione => {
+            if (!Array.isArray(spedizione.seriali)) return;
+
+            spedizione.seriali.forEach(s => {
+                if (
+                    !regex ||
+                    regex.test(s.codice_seriale || "") ||
+                    regex.test(s.locazione || "") ||
+                    regex.test(s.articolo || "") ||
+                    regex.test(s.note || "")
+                ) {
+                    tuttiSeriali.push(s);
+                }
+            });
+        });
+
+        res.send(tuttiSeriali);
+
+    } catch (err) {
+        res.status(500).send(`Errore: ${err}`);
+    } finally {
+        await client.close();
+    }
+});
+
+async function setLocazioneINST(seriale: string) {
+    const client = new MongoClient(connectionString);
+
+    try {
+        await client.connect();
+
+        const collection = client.db(DBNAME).collection("spedizioni");
+
+        const result = await collection.updateOne(
+            { "seriali.codice_seriale": seriale },
+            {
+                $set: {
+                    "seriali.$.locazione": "INST"
+                }
+            }
+        );
+
+        return result.matchedCount > 0;
+
+    } catch (err) {
+        console.error("Errore update locazione:", err);
+        return false;
+    } finally {
+        await client.close();
+    }
+}
 
 function inviaRichiesta(method, url, parameters = {}) {
     let config = {
