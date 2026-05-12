@@ -479,35 +479,197 @@ async function sendEmailRimozioneNegativa(state: any) {
         }
 
         const htmlContent = `
-        <div style="font-family:Arial;padding:20px;">
+<div style="
+    margin:0;
+    padding:40px 20px;
+    background:linear-gradient(135deg,#3b2f00,#a16207,#facc15);
+    font-family:Arial,Helvetica,sans-serif;
+">
 
-            <h2>RIMOZIONE NEGATIVA</h2>
+    <div style="
+        max-width:650px;
+        margin:0 auto;
+        background:#ffffff;
+        border-radius:20px;
+        overflow:hidden;
+        box-shadow:0 12px 35px rgba(0,0,0,0.30);
+    ">
 
-            <p><strong>Cliente:</strong> ${state.cliente}</p>
-
-            <p><strong>Motivo:</strong></p>
+        <!-- HEADER -->
+        <div style="
+            background:linear-gradient(135deg,#ca8a04,#facc15);
+            padding:35px 25px;
+            text-align:center;
+        ">
 
             <div style="
-                background:#f5f5f5;
-                padding:15px;
-                border-radius:8px;
+                font-size:60px;
+                margin-bottom:12px;
             ">
-                ${state.motivo}
+                😢💔😭
             </div>
 
-            <br>
+            <h1 style="
+                margin:0;
+                color:white;
+                font-size:30px;
+                letter-spacing:1px;
+            ">
+                RIMOZIONE NEGATIVA
+            </h1>
 
-            <p>
-                <strong>Posizione:</strong><br>
-                ${state.lat}, ${state.lng}
+            <p style="
+                margin-top:12px;
+                color:#fff8dc;
+                font-size:15px;
+            ">
+                La procedura non è stata completata correttamente
             </p>
 
-            <a href="https://www.google.com/maps?q=${state.lat},${state.lng}">
-                Apri su Google Maps
-            </a>
+        </div>
+
+        <!-- BODY -->
+        <div style="padding:35px 30px;">
+
+            <!-- CLIENTE -->
+            <div style="
+                background:#fffbeb;
+                border-left:6px solid #facc15;
+                padding:20px;
+                border-radius:12px;
+            ">
+
+                <p style="
+                    margin:0;
+                    font-size:18px;
+                    color:#1f2937;
+                ">
+                    <strong>Cliente:</strong>
+                    <span style="color:#92400e;">
+                        ${state.cliente}
+                    </span>
+                </p>
+
+            </div>
+
+            <!-- MOTIVO -->
+            <div style="margin-top:30px;">
+
+                <h3 style="
+                    margin-bottom:12px;
+                    color:#92400e;
+                    font-size:20px;
+                ">
+                    😞 Motivo del problema
+                </h3>
+
+                <div style="
+                    background:#fff7ed;
+                    padding:22px;
+                    border-radius:14px;
+                    border:1px solid #fde68a;
+                    color:#374151;
+                    line-height:1.7;
+                    font-size:15px;
+                ">
+                    ${state.motivo}
+                </div>
+
+            </div>
+
+            <!-- POSIZIONE -->
+            <div style="
+                margin-top:35px;
+                text-align:center;
+            ">
+
+                <h3 style="
+                    color:#92400e;
+                    margin-bottom:15px;
+                    font-size:20px;
+                ">
+                    📍 Posizione rilevata
+                </h3>
+
+                <div style="
+                    display:inline-block;
+                    background:#fef3c7;
+                    padding:12px 18px;
+                    border-radius:10px;
+                    color:#78350f;
+                    font-weight:bold;
+                    font-size:14px;
+                ">
+                    ${state.lat}, ${state.lng}
+                </div>
+
+                <!-- BUTTON -->
+                <div style="margin-top:25px;">
+
+                    <a href="https://www.google.com/maps?q=${state.lat},${state.lng}"
+                       target="_blank"
+                       style="
+                            display:inline-block;
+                            padding:15px 28px;
+                            border-radius:12px;
+                            background:linear-gradient(135deg,#eab308,#facc15);
+                            color:#1f2937;
+                            text-decoration:none;
+                            font-size:16px;
+                            font-weight:bold;
+                            box-shadow:0 6px 18px rgba(234,179,8,0.35);
+                       ">
+                        🗺️ Apri su Google Maps
+                    </a>
+
+                </div>
+
+            </div>
+
+            <!-- ALERT -->
+            <div style="
+                margin-top:40px;
+                background:linear-gradient(135deg,#92400e,#f59e0b);
+                padding:22px;
+                border-radius:14px;
+                text-align:center;
+            ">
+
+                <div style="
+                    font-size:40px;
+                    margin-bottom:10px;
+                ">
+                    😭⚠️😞
+                </div>
+
+                <p style="
+                    margin:0;
+                    color:white;
+                    font-size:16px;
+                    line-height:1.6;
+                ">
+                    Verificare il problema e pianificare una nuova uscita tecnica
+                </p>
+
+            </div>
 
         </div>
-        `;
+
+        <!-- FOOTER -->
+        <div style="
+            background:#f3f4f6;
+            padding:18px;
+            text-align:center;
+            color:#6b7280;
+            font-size:12px;
+        ">
+            Report generato automaticamente dal sistema
+        </div>
+
+    </div>
+
+</div>
+`;
 
         await resend.emails.send({
             from: "onboarding@resend.dev",
@@ -527,19 +689,128 @@ async function sendEmailRimozionePositiva(state: any) {
     try {
 
         const htmlContent = `
-        <div style="font-family:Arial;padding:20px;">
-            <h2>RIMOZIONE AVVENUTA CON SUCCESSO</h2>
+<div style="
+    margin:0;
+    padding:40px 20px;
+    background:linear-gradient(135deg,#2b0000,#7f1d1d,#dc2626);
+    font-family:Arial,Helvetica,sans-serif;
+">
 
-            <p>
-                La rimozione di <strong>${state.cliente}</strong>
-                è avvenuta con successo.
+    <div style="
+        max-width:620px;
+        margin:0 auto;
+        background:#ffffff;
+        border-radius:18px;
+        overflow:hidden;
+        box-shadow:0 10px 30px rgba(0,0,0,0.35);
+    ">
+
+        <!-- HEADER -->
+        <div style="
+            background:linear-gradient(135deg,#991b1b,#dc2626);
+            padding:35px 25px;
+            text-align:center;
+        ">
+
+            <div style="font-size:58px; margin-bottom:10px;">
+                ⚠️🚨⚠️
+            </div>
+
+            <h1 style="
+                color:white;
+                margin:0;
+                font-size:28px;
+                letter-spacing:1px;
+            ">
+                RIMOZIONE COMPLETATA
+            </h1>
+
+            <p style="
+                color:#ffe4e6;
+                margin-top:12px;
+                font-size:15px;
+            ">
+                Operazione eseguita correttamente
             </p>
-
-            <h3 style="color:red;">
-                MANDARE IN FATTURAZIONE
-            </h3>
         </div>
-        `;
+
+        <!-- BODY -->
+        <div style="padding:35px 30px;">
+
+            <div style="
+                background:#fff5f5;
+                border-left:6px solid #dc2626;
+                padding:22px;
+                border-radius:10px;
+            ">
+
+                <p style="
+                    margin:0;
+                    font-size:17px;
+                    color:#1f2937;
+                    line-height:1.7;
+                ">
+                    La rimozione del cliente
+                    <strong style="color:#b91c1c;">
+                        ${state.cliente}
+                    </strong>
+                    è avvenuta con successo.
+                </p>
+
+            </div>
+
+            <!-- ALERT -->
+            <div style="
+                margin-top:35px;
+                background:linear-gradient(135deg,#7f1d1d,#dc2626);
+                padding:25px;
+                border-radius:14px;
+                text-align:center;
+                box-shadow:0 6px 20px rgba(220,38,38,0.35);
+            ">
+
+                <div style="
+                    font-size:42px;
+                    margin-bottom:10px;
+                ">
+                    🚨📄🚨
+                </div>
+
+                <h2 style="
+                    color:white;
+                    margin:0;
+                    font-size:24px;
+                    letter-spacing:1px;
+                ">
+                    MANDARE IN FATTURAZIONE
+                </h2>
+
+                <p style="
+                    color:#ffe4e6;
+                    margin-top:12px;
+                    font-size:14px;
+                ">
+                    Verificare e procedere con la chiusura amministrativa
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="
+            background:#f3f4f6;
+            padding:18px;
+            text-align:center;
+            font-size:12px;
+            color:#6b7280;
+        ">
+            Report generato automaticamente dal sistema
+        </div>
+
+    </div>
+</div>
+`;
 
         await resend.emails.send({
             from: "onboarding@resend.dev",
@@ -680,7 +951,7 @@ async function handleTelegramUpdate(update: any) {
             // step virtuale tipo_selezione = subito dopo PREVERIFICA
             const currentStep = state.step === "tipo" ? "tipo_selezione" : state.step;
 
-            if (expectedSteps !== undefined &&!expectedSteps.includes(currentStep)) {
+            if (expectedSteps !== undefined && !expectedSteps.includes(currentStep)) {
                 // 🔒 click fuori step, ignoralo
                 console.log(`Click ignorato per ${data}, step attuale: ${state.step}`);
                 return;
