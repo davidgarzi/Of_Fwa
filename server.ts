@@ -850,7 +850,7 @@ async function handleTelegramUpdate(update: any) {
                     inline_keyboard: [
                         [{ text: "PREVERIFICA", callback_data: "preverifica" }],
                         [{ text: "ATTIVAZIONE", callback_data: "attivazione" }],
-                        [{ text: "ATTIVAZIONE", callback_data: "attivazione" }]
+                        [{ text: "RIMOZIONE", callback_data: "rimozione" }]
                     ]
                 }
             });
