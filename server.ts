@@ -650,29 +650,37 @@ async function handleTelegramUpdate(update: any) {
                 });
             }
 
-            const validStepMap: Record<string, string | undefined> = {
-                "preverifica": undefined,      // cliccabile solo all'inizio
-                "attivazione": undefined,      // cliccabile solo all'inizio
+            const validStepMap: Record<string, string[] | undefined> = {
+                "preverifica": undefined,
+                "attivazione": undefined,
                 "rimozione": undefined,
 
-                "comino_graziano": "tipo_selezione",
-                "bf_impianti": "tipo_selezione",
-                "cau_valentino": "tipo_selezione",
-                "bono_impianti": "tipo_selezione",
+                "comino_graziano": ["tipo_selezione"],
+                "bf_impianti": ["tipo_selezione"],
+                "cau_valentino": ["tipo_selezione"],
+                "bono_impianti": ["tipo_selezione"],
 
-                "posizione_si": "conferma_posizione",
-                "posizione_no": "conferma_posizione",
+                // 🔥 posizione valida in ENTRAMBI i casi
+                "posizione_si": [
+                    "conferma_posizione",
+                    "rimozione_conferma_posizione"
+                ],
 
-                "rimozione_positivo": "rimozione_esito",
-                "rimozione_negativo": "rimozione_esito"
+                "posizione_no": [
+                    "conferma_posizione",
+                    "rimozione_conferma_posizione"
+                ],
+
+                "rimozione_positivo": ["rimozione_esito"],
+                "rimozione_negativo": ["rimozione_esito"]
             };
 
-            const expectedStep = validStepMap[data];
+            const expectedSteps = validStepMap[data];
 
             // step virtuale tipo_selezione = subito dopo PREVERIFICA
             const currentStep = state.step === "tipo" ? "tipo_selezione" : state.step;
 
-            if (expectedStep !== undefined && expectedStep !== currentStep) {
+            if (expectedSteps !== undefined &&!expectedSteps.includes(currentStep)) {
                 // 🔒 click fuori step, ignoralo
                 console.log(`Click ignorato per ${data}, step attuale: ${state.step}`);
                 return;
