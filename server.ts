@@ -459,6 +459,99 @@ async function sendEmailWithDataAttivazione(state: any) {
         console.error("Errore invio email attivazione:", error);
     }
 }
+
+async function sendEmailRimozioneNegativa(state: any) {
+
+    try {
+
+        const attachments = [];
+
+        for (let i = 0; i < state.foto.length; i++) {
+
+            const buffer = await downloadTelegramFile(state.foto[i]);
+
+            if (buffer) {
+                attachments.push({
+                    filename: `foto_${i + 1}.jpg`,
+                    content: buffer
+                });
+            }
+        }
+
+        const htmlContent = `
+        <div style="font-family:Arial;padding:20px;">
+
+            <h2>RIMOZIONE NEGATIVA</h2>
+
+            <p><strong>Cliente:</strong> ${state.cliente}</p>
+
+            <p><strong>Motivo:</strong></p>
+
+            <div style="
+                background:#f5f5f5;
+                padding:15px;
+                border-radius:8px;
+            ">
+                ${state.motivo}
+            </div>
+
+            <br>
+
+            <p>
+                <strong>Posizione:</strong><br>
+                ${state.lat}, ${state.lng}
+            </p>
+
+            <a href="https://www.google.com/maps?q=${state.lat},${state.lng}">
+                Apri su Google Maps
+            </a>
+
+        </div>
+        `;
+
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: "d.garzino@isiline.net",
+            subject: `[RIMOZIONE KO] ${state.cliente}`,
+            html: htmlContent,
+            attachments
+        });
+
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function sendEmailRimozionePositiva(state: any) {
+
+    try {
+
+        const htmlContent = `
+        <div style="font-family:Arial;padding:20px;">
+            <h2>RIMOZIONE AVVENUTA CON SUCCESSO</h2>
+
+            <p>
+                La rimozione di <strong>${state.cliente}</strong>
+                è avvenuta con successo.
+            </p>
+
+            <h3 style="color:red;">
+                MANDARE IN FATTURAZIONE
+            </h3>
+        </div>
+        `;
+
+        await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: "d.garzino@isiline.net",
+            subject: `[RIMOZIONE OK] ${state.cliente}`,
+            html: htmlContent
+        });
+
+    } catch (err) {
+        console.error(err);
+    }
+}
 //********************************************************************************************//
 // Fine NodeMailer
 //********************************************************************************************//
@@ -560,6 +653,7 @@ async function handleTelegramUpdate(update: any) {
             const validStepMap: Record<string, string | undefined> = {
                 "preverifica": undefined,      // cliccabile solo all'inizio
                 "attivazione": undefined,      // cliccabile solo all'inizio
+                "rimozione": undefined,
 
                 "comino_graziano": "tipo_selezione",
                 "bf_impianti": "tipo_selezione",
@@ -567,7 +661,10 @@ async function handleTelegramUpdate(update: any) {
                 "bono_impianti": "tipo_selezione",
 
                 "posizione_si": "conferma_posizione",
-                "posizione_no": "conferma_posizione"
+                "posizione_no": "conferma_posizione",
+
+                "rimozione_positivo": "rimozione_esito",
+                "rimozione_negativo": "rimozione_esito"
             };
 
             const expectedStep = validStepMap[data];
@@ -637,14 +734,79 @@ async function handleTelegramUpdate(update: any) {
                 await sendTelegramMessage(chatId, "Inserisci il nome del cliente (COGNOME E NOME):");
             }
 
+            // STEP RIMOZIONE
+            else if (data === "rimozione") {
+
+                state.tipo = "RIMOZIONE";
+                state.step = "rimozione_cliente";
+
+                await disableButton(callbackQuery.message.message_id, chatId, "rimozione");
+
+                await sendTelegramMessage(
+                    chatId,
+                    "Inserisci il nome del cliente (COGNOME E NOME):"
+                );
+            }
+
+            // ESITO RIMOZIONE POSITIVO
+            else if (data === "rimozione_positivo") {
+
+                state.esitoRimozione = "POSITIVO";
+
+                await disableButton(callbackQuery.message.message_id, chatId, data);
+
+                await sendEmailRimozionePositiva(state);
+
+                await sendTelegramMessage(
+                    chatId,
+                    "✅ Rimozione completata con successo!"
+                );
+
+                delete userStates[chatId];
+            }
+
+            // ESITO RIMOZIONE NEGATIVO
+            else if (data === "rimozione_negativo") {
+
+                state.esitoRimozione = "NEGATIVO";
+
+                await disableButton(callbackQuery.message.message_id, chatId, data);
+
+                state.step = "rimozione_motivo";
+
+                await sendTelegramMessage(
+                    chatId,
+                    "Dimmi cosa è andato storto:"
+                );
+            }
+
             // CONFERMA POSIZIONE
             else if (data === "posizione_si") {
+
                 await axios.post(`${TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text: "Posizione confermata ✅",
                     reply_markup: { remove_keyboard: true }
                 });
 
+                // 🔥 RIMOZIONE
+                if (state.tipo === "RIMOZIONE") {
+
+                    state.step = "rimozione_foto";
+                    state.foto = [];
+                    state.fotoCount = 0;
+
+                    await disableButton(callbackQuery.message.message_id, chatId, data);
+
+                    await sendTelegramMessage(
+                        chatId,
+                        "Perfetto. Inviami 2 foto della casa 📸"
+                    );
+
+                    return;
+                }
+
+                // 🔥 PREVERIFICA NORMALE
                 state.step = "foto";
                 state.fotoCount = 0;
                 state.foto = [];
@@ -687,6 +849,7 @@ async function handleTelegramUpdate(update: any) {
                 reply_markup: {
                     inline_keyboard: [
                         [{ text: "PREVERIFICA", callback_data: "preverifica" }],
+                        [{ text: "ATTIVAZIONE", callback_data: "attivazione" }],
                         [{ text: "ATTIVAZIONE", callback_data: "attivazione" }]
                     ]
                 }
@@ -860,7 +1023,13 @@ async function handleTelegramUpdate(update: any) {
         if (update.message.location) {
             state.lat = update.message.location.latitude;
             state.lng = update.message.location.longitude;
-            state.step = "conferma_posizione";
+
+            if (state.tipo === "RIMOZIONE") {
+                state.step = "rimozione_conferma_posizione";
+            }
+            else {
+                state.step = "conferma_posizione";
+            }
 
             await axios.post(`${TELEGRAM_API}/sendMessage`, {
                 chat_id: chatId,
@@ -878,6 +1047,42 @@ async function handleTelegramUpdate(update: any) {
                     ]
                 }
             });
+            return;
+        }
+
+        // ================================
+        // FOTO RIMOZIONE
+        // ================================
+        if (state.step === "rimozione_foto" && update.message.photo) {
+
+            const photos = update.message.photo;
+            const largestPhoto = photos[photos.length - 1];
+            const fileId = largestPhoto.file_id;
+
+            if (!state.foto.includes(fileId)) {
+                state.foto.push(fileId);
+                state.fotoCount++;
+            }
+
+            if (state.fotoCount < 2) {
+
+                await sendTelegramMessage(
+                    chatId,
+                    `Foto ${state.fotoCount} ricevuta ✅ Inviami la prossima.`
+                );
+
+            } else {
+
+                await sendEmailRimozioneNegativa(state);
+
+                await sendTelegramMessage(
+                    chatId,
+                    "✅ Procedura rimozione completata!"
+                );
+
+                delete userStates[chatId];
+            }
+
             return;
         }
 
@@ -1007,6 +1212,55 @@ async function handleTelegramUpdate(update: any) {
             return;
         }
         //FINE AGGIUNTO DI MIO
+
+        // ================================
+        // RIMOZIONE - CLIENTE
+        // ================================
+        if (state.step === "rimozione_cliente" && text) {
+
+            state.cliente = text.trim().toUpperCase();
+
+            state.step = "rimozione_esito";
+
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: "ESITO RIMOZIONE:",
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: "NEGATIVO", callback_data: "rimozione_negativo" },
+                            { text: "POSITIVO", callback_data: "rimozione_positivo" }
+                        ]
+                    ]
+                }
+            });
+
+            return;
+        }
+
+        // ================================
+        // RIMOZIONE NEGATIVA - MOTIVO
+        // ================================
+        if (state.step === "rimozione_motivo" && text) {
+
+            state.motivo = text.trim();
+
+            state.step = "rimozione_posizione";
+
+            await sendTelegramMessage(chatId, "Invia la tua posizione 📍");
+
+            await axios.post(`${TELEGRAM_API}/sendMessage`, {
+                chat_id: chatId,
+                text: "Invia la tua posizione:",
+                reply_markup: {
+                    keyboard: [[{ text: "Invia posizione 📍", request_location: true }]],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                }
+            });
+
+            return;
+        }
 
         // RISPOSTA GENERICA
         if (text.toLowerCase().includes("ciao")) {
