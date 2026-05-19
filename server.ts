@@ -1642,7 +1642,7 @@ app.get("/api/totoSpedizioni", async (req, res, next) => {
 
 app.post("/api/modificaSeriale", async (req, res) => {
 
-    const { codice_seriale, locazione, note } = req.body;
+    const { codice_seriale, locazione, note, aggiornata } = req.body;
 
     if (!codice_seriale) {
         return res.status(400).send("codice_seriale mancante");
@@ -1651,18 +1651,48 @@ app.post("/api/modificaSeriale", async (req, res) => {
     const client = new MongoClient(connectionString);
 
     try {
+
         await client.connect();
 
         const collection = client.db("isifiber").collection("spedizioni");
 
-        // aggiorna il documento che contiene quel seriale dentro l'array
+        // 🔥 creo oggetto update dinamico
+        const updateFields: any = {};
+
+        // aggiorna solo se passato
+        if (locazione !== undefined) {
+            updateFields["seriali.$.locazione"] = locazione;
+        }
+
+        // aggiorna note solo se passato
+        if (note !== undefined) {
+            updateFields["seriali.$.note"] = note;
+        }
+
+        // 🔥 aggiornata=true SOLO se NON inizia con PT
+        if (aggiornata === true) {
+
+            if (codice_seriale.startsWith("PT")) {
+
+                return res.status(400).send(
+                    "Non è possibile impostare aggiornata=true per seriali PT"
+                );
+            }
+
+            // anche se il campo non esiste lo crea automaticamente
+            updateFields["seriali.$.aggiornata"] = true;
+        }
+
+        // controllo che ci sia almeno 1 campo da aggiornare
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).send("Nessun campo da aggiornare");
+        }
+
+        // update
         const result = await collection.updateOne(
             { "seriali.codice_seriale": codice_seriale },
             {
-                $set: {
-                    "seriali.$.locazione": locazione,
-                    "seriali.$.note": note
-                }
+                $set: updateFields
             }
         );
 
@@ -1673,13 +1703,122 @@ app.post("/api/modificaSeriale", async (req, res) => {
         res.send({
             success: true,
             message: "Seriale aggiornato correttamente",
+            updatedFields: updateFields,
             result
         });
 
     } catch (err) {
+
         console.error(err);
         res.status(500).send("Errore server");
+
     } finally {
+
+        await client.close();
+    }
+});
+
+app.get("/api/locazioni", async (req, res) => {
+
+    const client = new MongoClient(connectionString);
+
+    try {
+
+        await client.connect();
+
+        const collection = client
+            .db(DBNAME)
+            .collection("spedizioni");
+
+        // prende tutte le locazioni dei seriali
+        const result = await collection.aggregate([
+            { $unwind: "$seriali" },
+
+            {
+                $group: {
+                    _id: "$seriali.locazione"
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    locazione: "$_id"
+                }
+            },
+
+            {
+                $sort: {
+                    locazione: 1
+                }
+            }
+        ]).toArray();
+
+        // elimina null o vuoti
+        const filtrati = result.filter(x =>
+            x.locazione &&
+            x.locazione.trim() !== ""
+        );
+
+        res.send(filtrati);
+
+    } catch (err) {
+
+        console.error(err);
+        res.status(500).send("Errore server");
+
+    } finally {
+
+        await client.close();
+    }
+});
+
+app.get("/api/filtroLocazione", async (req, res) => {
+
+    const { locazione } = req.query;
+
+    const client = new MongoClient(connectionString);
+
+    try {
+
+        await client.connect();
+
+        const collection = client
+            .db(DBNAME)
+            .collection("spedizioni");
+
+        const result = await collection.aggregate([
+
+            { $unwind: "$seriali" },
+
+            {
+                $match: {
+                    "seriali.locazione": locazione
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    locazione: "$seriali.locazione",
+                    codice_seriale: "$seriali.codice_seriale",
+                    articolo: "$seriali.articolo",
+                    note: "$seriali.note",
+                    aggiornata: "$seriali.aggiornata"
+                }
+            }
+
+        ]).toArray();
+
+        res.send(result);
+
+    } catch (err) {
+
+        console.error(err);
+        res.status(500).send("Errore server");
+
+    } finally {
+
         await client.close();
     }
 });

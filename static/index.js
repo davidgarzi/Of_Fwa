@@ -4,6 +4,38 @@ $(document).ready(function () {
   const righePerPagina = 10;
 
   checkAuth();
+  caricaLocazioni();
+
+  function caricaLocazioni() {
+
+    let request = inviaRichiesta(
+      "GET",
+      "/api/locazioni"
+    );
+
+    request.then((response) => {
+
+      let options = `
+            <option value="">
+                -- Seleziona stato --
+            </option>
+        `;
+
+      response.data.forEach(item => {
+
+        options += `
+                <option value="${item.locazione}">
+                    ${item.locazione}
+                </option>
+            `;
+      });
+
+      $("#categorySelect").html(options);
+
+    });
+
+    request.catch(err => errore(err));
+  }
 
   function checkAuth() {
     let token = localStorage.getItem("token");
@@ -14,6 +46,37 @@ $(document).ready(function () {
       return;
     }
   }
+
+  $("#categorySelect").on("change", function () {
+
+    let locazione = $(this).val();
+
+    // se vuoto torna tutto
+    if (!locazione) {
+      richiestaTotoSpedizioni();
+      return;
+    }
+
+    let request = inviaRichiesta(
+      "GET",
+      "/api/filtroLocazione",
+      { locazione }
+    );
+
+    request.then((response) => {
+
+      datiGlobali = response.data;
+
+      paginaCorrente = 1;
+
+      renderTabella();
+
+      renderPaginazione();
+
+    });
+
+    request.catch(err => errore(err));
+  });
 
   $("#button-search").on("click", cercaDati);
 
@@ -182,6 +245,8 @@ $(document).ready(function () {
   }
 
   function cercaDati() {
+    // reset select locazione
+    $("#categorySelect").val("");
     let testo = $("#inputCerca").val();
 
     let request = inviaRichiesta('GET', '/api/filtroCerca', {
