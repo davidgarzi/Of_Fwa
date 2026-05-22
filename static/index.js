@@ -2,9 +2,32 @@ $(document).ready(function () {
   let datiGlobali = [];
   let paginaCorrente = 1;
   const righePerPagina = 10;
+  let filtroTipo = "tutti"; // tutti | poe | ts
 
+  aggiornaBottoniFiltro();
   checkAuth();
   caricaLocazioni();
+
+  function applicaFiltroTipo(dati) {
+
+    if (filtroTipo === "poe") {
+
+      return dati.filter(item =>
+        item.codice_seriale &&
+        item.codice_seriale.startsWith("PT")
+      );
+    }
+
+    if (filtroTipo === "ts") {
+
+      return dati.filter(item =>
+        item.codice_seriale &&
+        !item.codice_seriale.startsWith("PT")
+      );
+    }
+
+    return dati;
+  }
 
   function caricaLocazioni() {
 
@@ -50,8 +73,8 @@ $(document).ready(function () {
   $("#categorySelect").on("change", function () {
 
     let locazione = $(this).val();
+    $("#inputCerca").val("");
 
-    // se vuoto torna tutto
     if (!locazione) {
       richiestaTotoSpedizioni();
       return;
@@ -65,12 +88,11 @@ $(document).ready(function () {
 
     request.then((response) => {
 
-      datiGlobali = response.data;
+      datiGlobali = applicaFiltroTipo(response.data);
 
       paginaCorrente = 1;
 
       renderTabella();
-
       renderPaginazione();
 
     });
@@ -244,21 +266,46 @@ $(document).ready(function () {
       });
   }
 
+  function aggiornaBottoniFiltro() {
+
+    $(".btn-filtro").removeClass("filtro-attivo");
+
+    if (filtroTipo === "poe") {
+      $("#btnSoloPOE").addClass("filtro-attivo");
+    }
+
+    else if (filtroTipo === "ts") {
+      $("#btnSoloTS").addClass("filtro-attivo");
+    }
+
+    else {
+      $("#btnVisualizzaCompleto").addClass("filtro-attivo");
+    }
+  }
+
   function cercaDati() {
-    // reset select locazione
+
     $("#categorySelect").val("");
+
     let testo = $("#inputCerca").val();
 
-    let request = inviaRichiesta('GET', '/api/filtroCerca', {
-      search: testo
-    });
+    let request = inviaRichiesta(
+      'GET',
+      '/api/filtroCerca',
+      {
+        search: testo
+      }
+    );
 
     request.then((response) => {
-      datiGlobali = response.data;
+
+      datiGlobali = applicaFiltroTipo(response.data);
+
       paginaCorrente = 1;
 
       renderTabella();
       renderPaginazione();
+
     });
 
     request.catch(err => errore(err));
@@ -268,27 +315,34 @@ $(document).ready(function () {
   // spedizioni
   // -------------------------
   function richiestaTotoSpedizioni() {
-    let request = inviaRichiesta('GET', '/api/totoSpedizioni');
 
-    request
-      .then((response) => {
-        console.log(response);
+    let request = inviaRichiesta(
+      'GET',
+      '/api/totoSpedizioni'
+    );
 
-        datiGlobali = response.data;
-        paginaCorrente = 1;
+    request.then((response) => {
 
-        renderTabella();
-        renderPaginazione();
-      })
-      .catch(function (err) {
-        console.log(err.response?.status);
+      datiGlobali = applicaFiltroTipo(response.data);
 
-        if (err.response && err.response.status == 401) {
-          console.log(err.response.data);
-        } else {
-          errore(err);
-        }
-      });
+      paginaCorrente = 1;
+
+      renderTabella();
+      renderPaginazione();
+
+    });
+
+    request.catch(function (err) {
+
+      console.log(err.response?.status);
+
+      if (err.response && err.response.status == 401) {
+        console.log(err.response.data);
+      }
+      else {
+        errore(err);
+      }
+    });
   }
 
   $(document).on("click", ".btn-prev", function () {
@@ -309,6 +363,98 @@ $(document).ready(function () {
     }
   });
 
+  $("#btnSoloPOE").on("click", function () {
+
+    filtroTipo = "poe";
+
+    aggiornaBottoniFiltro();
+
+    aggiornaFiltri();
+  });
+
+  $("#btnSoloTS").on("click", function () {
+
+    filtroTipo = "ts";
+
+    aggiornaBottoniFiltro();
+
+    aggiornaFiltri();
+  });
+
+  $("#btnVisualizzaCompleto").on("click", function () {
+
+    filtroTipo = "tutti";
+
+    aggiornaBottoniFiltro();
+
+    aggiornaFiltri();
+  });
+
+  function aggiornaFiltri() {
+
+    let testo = $("#inputCerca").val().trim();
+    let locazione = $("#categorySelect").val();
+
+    // PRIORITÀ ALLA RICERCA
+    if (testo !== "") {
+
+      let request = inviaRichiesta(
+        "GET",
+        "/api/filtroCerca",
+        { search: testo }
+      );
+
+      request.then((response) => {
+
+        datiGlobali = applicaFiltroTipo(response.data);
+
+        // applica anche eventuale select
+        if (locazione !== "") {
+
+          datiGlobali = datiGlobali.filter(item =>
+            item.locazione === locazione
+          );
+        }
+
+        paginaCorrente = 1;
+
+        renderTabella();
+        renderPaginazione();
+      });
+
+      request.catch(err => errore(err));
+
+      return;
+    }
+
+    // SOLO SELECT
+    if (locazione !== "") {
+
+      let request = inviaRichiesta(
+        "GET",
+        "/api/filtroLocazione",
+        { locazione }
+      );
+
+      request.then((response) => {
+
+        datiGlobali = applicaFiltroTipo(response.data);
+
+        paginaCorrente = 1;
+
+        renderTabella();
+        renderPaginazione();
+      });
+
+      request.catch(err => errore(err));
+
+      return;
+    }
+
+    // NESSUN FILTRO
+    richiestaTotoSpedizioni();
+  }
+
   function creaRiga(item) {
     return `
     <tr>
@@ -321,7 +467,7 @@ $(document).ready(function () {
                     data-seriale="${item.codice_seriale}"
                     style="width: 40px; height: 40px;">
                 <span style="font-size: 1.6rem; line-height: 1;">
-                    ✏️
+                📝
                 </span>
             </button>
         </td>
