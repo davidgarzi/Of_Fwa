@@ -128,7 +128,7 @@ $(document).ready(function () {
 
     // reset campo ricerca
     $("#inputCerca").val("");
-
+    $("#categorySelect").val("");
     // ricarica tutti i dati dal DB
     richiestaTotoSpedizioni();
 
