@@ -461,6 +461,7 @@ $(document).ready(function () {
         <th scope="row">${item.locazione}</th>
         <td>${item.codice_seriale}</td>
         <td>${item.articolo}</td>
+        <td>${item.anagrafica || ""}</td>
         <td>${item.note}</td>
         <td class="text-center align-middle">
             <button class="btn btn-modifica p-0 border-0 bg-transparent d-flex align-items-center justify-content-center mx-auto"
