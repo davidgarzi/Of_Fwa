@@ -1840,8 +1840,9 @@ app.get("/api/filtroLocazione", async (req, res) => {
                 $project: {
                     _id: 0,
                     locazione: "$seriali.locazione",
-                    codice_seriale: "$seriali.codice_seriale",
+                    codice_seriale: "$seriali.codice_seriale",  
                     articolo: "$seriali.articolo",
+                    anagrafica: "$seriali.anagrafica",
                     note: "$seriali.note",
                     aggiornata: "$seriali.aggiornata"
                 }
@@ -1883,6 +1884,7 @@ app.get("/api/filtroCerca", async (req, res) => {
                             { codice_seriale: regex },
                             { locazione: regex },
                             { articolo: regex },
+                            { anagrafica: regex },
                             { note: regex }
                         ]
                     }
@@ -1905,6 +1907,7 @@ app.get("/api/filtroCerca", async (req, res) => {
                     regex.test(s.codice_seriale || "") ||
                     regex.test(s.locazione || "") ||
                     regex.test(s.articolo || "") ||
+                    regex.test(s.anagrafica || "") ||
                     regex.test(s.note || "")
                 ) {
                     tuttiSeriali.push(s);

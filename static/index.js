@@ -155,12 +155,14 @@ $(document).ready(function () {
 
     let locazione = row.find("th").text();
     let articolo = row.find("td").eq(1).text();
-    let note = row.find("td").eq(2).text();
+    let anagrafica = row.find("td").eq(2).text();
+    let note = row.find("td").eq(3).text();
 
     // riempio modal
     $("#editSeriale").val(seriale);
     $("#editLocazione").val(locazione);
     $("#editArticolo").val(articolo);
+    $("#editAnagrafica").val(anagrafica);
     $("#editNote").val(note);
 
     // apro popup
@@ -179,12 +181,13 @@ $(document).ready(function () {
     }
 
     // intestazioni CSV
-    let csv = "LOCAZIONE,SERIALE,ARTICOLO,NOTE\n";
+    let csv = "LOCAZIONE,SERIALE,ARTICOLO,ANAGRAFICA,NOTE\n";
 
     datiGlobali.forEach(item => {
       csv += `"${item.locazione || ""}",`;
       csv += `="${item.codice_seriale || ""}",`;
       csv += `"${item.articolo || ""}",`;
+      csv += `"${item.anagrafica || ""}",`;
       csv += `"${item.note || ""}"\n`;
     });
 
@@ -236,8 +239,17 @@ $(document).ready(function () {
     request.then(function (res) {
       $("#modalModificaSeriale").modal("hide");
 
-      // aggiorna tabella
-      richiestaTotoSpedizioni();
+      // 1) aggiorna SOLO il dato in memoria
+      let idx = datiGlobali.findIndex(
+        item => item.codice_seriale === data.codice_seriale
+      );
+
+      if (idx !== -1) {
+        datiGlobali[idx].locazione = data.locazione;
+        datiGlobali[idx].note = data.note;
+      }
+      renderTabella();
+      renderPaginazione();
     });
 
     request.catch(function (err) {
