@@ -1158,7 +1158,10 @@ async function handleTelegramUpdate(update: any) {
             // 🔥 controllo pattern
             if (serialTS.startsWith("3")) {
 
-                const ok = await setLocazioneINST(serialTS);
+                const ok = await setLocazioneINSTeAnagrafica(
+                    serialTS,
+                    state.cliente
+                );
 
                 if (ok) {
                     await sendTelegramMessage(chatId, "✅ TS trovato e aggiornato a INST");
@@ -1197,7 +1200,10 @@ async function handleTelegramUpdate(update: any) {
             // 🔥 controllo pattern POE
             if (serialPOE.startsWith("PT")) {
 
-                const ok = await setLocazioneINST(serialPOE);
+                const ok = await setLocazioneINSTeAnagrafica(
+                    serialPOE,
+                    state.cliente
+                );
 
                 if (ok) {
                     await sendTelegramMessage(chatId, "✅ POE trovato e aggiornato a INST");
@@ -1772,6 +1778,39 @@ app.get("/api/locazioni", async (req, res) => {
         await client.close();
     }
 });
+
+async function setLocazioneINSTeAnagrafica(
+    seriale: string,
+    anagrafica: string
+) {
+    const client = new MongoClient(connectionString);
+
+    try {
+        await client.connect();
+
+        const collection = client.db(DBNAME).collection("spedizioni");
+
+        const result = await collection.updateOne(
+            {
+                "seriali.codice_seriale": seriale
+            },
+            {
+                $set: {
+                    "seriali.$.locazione": "INST",
+                    "seriali.$.anagrafica": anagrafica
+                }
+            }
+        );
+
+        return result.matchedCount > 0;
+
+    } catch (err) {
+        console.error(err);
+        return false;
+    } finally {
+        await client.close();
+    }
+}
 
 app.get("/api/filtroLocazione", async (req, res) => {
 
