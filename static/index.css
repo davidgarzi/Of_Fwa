@@ -55,6 +55,29 @@ body {
   transform: rotate(12deg) scale(1.1);
 }
 
+.btn-barcode {
+  display: block;
+  margin: 0 auto;
+  font-size: 18px;
+
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
+
+  cursor: pointer;
+}
+
+.btn-barcode:hover,
+.btn-barcode:focus,
+.btn-barcode:active {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* ===== NAVBAR ===== */
 .navb {
   position: fixed;

@@ -8,6 +8,16 @@ $(document).ready(function () {
   checkAuth();
   caricaLocazioni();
 
+  $(document).on("click", ".btn-barcode", function () {
+
+    let seriale = $(this).data("seriale");
+
+    window.open(
+      `barcode.html?seriale=${encodeURIComponent(seriale)}`,
+      "_blank"
+    );
+  });
+
   function applicaFiltroTipo(dati) {
 
     if (filtroTipo === "poe") {
@@ -475,14 +485,22 @@ $(document).ready(function () {
         <td>${item.articolo}</td>
         <td>${item.anagrafica || ""}</td>
         <td>${item.note}</td>
+
         <td class="text-center align-middle">
-            <button class="btn btn-modifica p-0 border-0 bg-transparent d-flex align-items-center justify-content-center mx-auto"
+
+            <button class="btn btn-modifica p-0 border-0 bg-transparent"
                     data-seriale="${item.codice_seriale}"
-                    style="width: 40px; height: 40px;">
-                <span style="font-size: 1.6rem; line-height: 1;">
+                    title="Modifica">
                 📝
-                </span>
             </button>
+
+            <br>
+        </td>
+        <td>
+         <button class="btn-barcode"
+                    data-seriale="${item.codice_seriale}">
+                🔖
+         </button>
         </td>
     </tr>
   `;

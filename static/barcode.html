@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Barcode</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        svg {
+            width: 600px;
+            max-width: 90%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2 id="seriale"></h2>
+
+    <svg id="barcode"></svg>
+
+    <script>
+
+        const params = new URLSearchParams(window.location.search);
+        const seriale = params.get("seriale");
+
+        document.getElementById("seriale").innerText = seriale;
+
+        JsBarcode("#barcode", seriale, {
+            format: "CODE128",
+            displayValue: true,
+            fontSize: 24,
+            height: 120,
+            width: 2
+        });
+
+    </script>
+
+</body>
+
+</html>
