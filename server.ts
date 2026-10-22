@@ -365,88 +365,263 @@ async function sendEmailInterventoPOP(state: any) {
         const esitoColor =
             state.esitoPOP === "POSITIVO" ? "#16a34a" : "#dc2626";
 
+
         const htmlContent = `
-        <div style="background:#f3f4f6;padding:30px 10px;
-                    font-family:Arial,Helvetica,sans-serif;">
-            <div style="max-width:650px;margin:0 auto;background:#ffffff;
-                        border-radius:12px;overflow:hidden;
-                        box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f3f0ff;
+             font-family:Arial,Helvetica,sans-serif;color:#334155;">
 
-                <div style="background:#1f2937;padding:25px;text-align:center;">
-                    <h2 style="color:#ffffff;margin:0;">
-                        REPORT INTERVENTO POP
-                    </h2>
-                    <p style="color:#d1d5db;margin-bottom:0;">
-                        ${dataIntervento}
-                    </p>
-                </div>
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+        Report intervento POP ${escapeHtmlPOP(state.locazionePOP)} -
+        ${escapeHtmlPOP(state.esitoPOP)}
+    </div>
 
-                <div style="padding:25px;">
-                    <table width="100%" cellpadding="12"
-                           style="border-collapse:collapse;font-size:14px;">
-                        <tr style="background:#f9fafb;">
-                            <td><strong>Tipo intervento</strong></td>
-                            <td>${escapeHtmlPOP(state.tipoIntervento)}</td>
-                        </tr>
-                        
-                        <tr>
-                            <td><strong>Locazione POP</strong></td>
-                            <td>${escapeHtmlPOP(state.locazionePOP)}</td>
-                        </tr>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           border="0" style="background-color:#f3f0ff;">
+        <tr>
+            <td align="center" style="padding:30px 12px;">
 
-                        <tr>
-                            <td><strong>Esito</strong></td>
-                            <td>
-                                <span style="background:${esitoColor};
-                                    color:white;padding:6px 12px;
-                                    border-radius:20px;font-weight:bold;">
-                                    ${escapeHtmlPOP(state.esitoPOP)}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr style="background:#f9fafb;">
-                            <td><strong>Descrizione</strong></td>
-                            <td>${escapeHtmlPOP(state.descrizionePOP)}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Data e ora</strong></td>
-                            <td>${dataIntervento}</td>
-                        </tr>
-                        <tr style="background:#f9fafb;">
-                            <td><strong>Foto ricevute</strong></td>
-                            <td>${attachments.length}</td>
-                        </tr>
-                    </table>
+                <table role="presentation" width="100%" cellpadding="0"
+                       cellspacing="0" border="0"
+                       style="max-width:680px;background:#ffffff;
+                              border-radius:18px;overflow:hidden;
+                              border:1px solid #e8e3f5;">
 
-                    <div style="margin-top:25px;padding:18px;
-                                background:#f9fafb;border-radius:8px;">
-                        <strong>Descrizione dell'intervento</strong>
-                        <p style="white-space:pre-wrap;line-height:1.6;">
-                            ${escapeHtmlPOP(state.descrizionePOP)}
-                        </p>
-                    </div>
+                    <!-- HEADER -->
+                    <tr>
+                        <td align="center"
+                            style="padding:38px 24px 32px;
+                                   background-color:#c4b5fd;
+                                   background-image:linear-gradient(
+                                       135deg,#c4b5fd 0%,#a5d8ff 52%,#b8f2e6 100%
+                                   );">
 
-                    <div style="margin-top:25px;text-align:center;">
-                        <h3 style="color:#111827;">📸 Foto intervento</h3>
-                        <p style="color:#6b7280;font-size:13px;">
-                            Le fotografie sono incluse come allegati alla mail.
-                        </p>
-                    </div>
-                </div>
+                            <div style="font-size:36px;line-height:1.4;">
+                                🛠️ 📡
+                            </div>
 
-                <div style="background:#e5e7eb;padding:15px;text-align:center;
-                            color:#6b7280;font-size:12px;">
-                    Email generata automaticamente dal bot Telegram
-                </div>
-            </div>
-        </div>
-        `;
+                            <h1 style="margin:10px 0 8px;color:#312e81;
+                                       font-size:25px;line-height:1.3;
+                                       letter-spacing:0.5px;">
+                                REPORT INTERVENTO POP
+                            </h1>
+
+                            <p style="margin:0;color:#3730a3;
+                                      font-size:14px;line-height:1.6;">
+                                Riepilogo dell'attività tecnica
+                            </p>
+
+                            <div style="margin:22px auto 0;padding:10px 18px;
+                                        display:inline-block;
+                                        background:rgba(255,255,255,0.75);
+                                        border:1px solid rgba(255,255,255,0.9);
+                                        border-radius:30px;color:#312e81;
+                                        font-size:15px;font-weight:bold;">
+                                📍 ${escapeHtmlPOP(state.locazionePOP || "POP non specificato")}
+                            </div>
+
+                            <p style="margin:16px 0 0;color:#4338a3;
+                                      font-size:13px;">
+                                🗓️ ${dataIntervento}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- INTRO -->
+                    <tr>
+                        <td style="padding:28px 28px 10px;">
+                            <h2 style="margin:0 0 8px;color:#334155;
+                                       font-size:19px;">
+                                👋 Riepilogo intervento
+                            </h2>
+                            <p style="margin:0;color:#64748b;font-size:14px;
+                                      line-height:1.7;">
+                                Di seguito trovi i dettagli dell'intervento
+                                effettuato e la documentazione fotografica
+                                ricevuta tramite il bot Telegram.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- ESITO -->
+                    <tr>
+                        <td style="padding:18px 28px;">
+                            <table role="presentation" width="100%"
+                                   cellpadding="0" cellspacing="0" border="0"
+                                   style="background:${state.esitoPOP === "POSITIVO" ? "#ecfdf5" : "#fff1f2"};
+                                          border:1px solid ${state.esitoPOP === "POSITIVO" ? "#a7f3d0" : "#fecdd3"};
+                                          border-radius:12px;">
+                                <tr>
+                                    <td style="padding:18px;">
+                                        <div style="font-size:13px;
+                                                    color:#64748b;
+                                                    margin-bottom:7px;">
+                                            📊 ESITO DELL'INTERVENTO
+                                        </div>
+                                        <div style="font-size:20px;font-weight:bold;
+                                                    color:${state.esitoPOP === "POSITIVO" ? "#047857" : "#be123c"};">
+                                            ${state.esitoPOP === "POSITIVO" ? "✅" : "⚠️"}
+                                            ${escapeHtmlPOP(state.esitoPOP)}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- DETTAGLI -->
+                    <tr>
+                        <td style="padding:0 28px 24px;">
+                            <h3 style="margin:0 0 14px;color:#475569;
+                                       font-size:16px;">
+                                📋 Dettagli tecnici
+                            </h3>
+
+                            <table role="presentation" width="100%"
+                                   cellpadding="0" cellspacing="0" border="0"
+                                   style="font-size:14px;border:1px solid #e2e8f0;
+                                          border-radius:12px;overflow:hidden;">
+
+                                <tr style="background:#f8f7ff;">
+                                    <td width="42%"
+                                        style="padding:14px 12px;color:#64748b;
+                                               border-bottom:1px solid #e9e5f5;">
+                                        🔧 <strong>Tipo intervento</strong>
+                                    </td>
+                                    <td style="padding:14px 12px;color:#334155;
+                                               font-weight:bold;
+                                               border-bottom:1px solid #e9e5f5;">
+                                        ${escapeHtmlPOP(state.tipoIntervento)}
+                                    </td>
+                                </tr>
+
+                                <tr style="background:#ffffff;">
+                                    <td style="padding:14px 12px;color:#64748b;
+                                               border-bottom:1px solid #e2e8f0;">
+                                        📍 <strong>Locazione POP</strong>
+                                    </td>
+                                    <td style="padding:14px 12px;color:#334155;
+                                               font-weight:bold;
+                                               border-bottom:1px solid #e2e8f0;">
+                                        ${escapeHtmlPOP(state.locazionePOP || "Non specificata")}
+                                    </td>
+                                </tr>
+
+                                <tr style="background:#f8f7ff;">
+                                    <td style="padding:14px 12px;color:#64748b;
+                                               border-bottom:1px solid #e9e5f5;">
+                                        🗓️ <strong>Data e ora</strong>
+                                    </td>
+                                    <td style="padding:14px 12px;color:#334155;
+                                               border-bottom:1px solid #e9e5f5;">
+                                        ${dataIntervento}
+                                    </td>
+                                </tr>
+
+                                <tr style="background:#ffffff;">
+                                    <td style="padding:14px 12px;color:#64748b;">
+                                        📸 <strong>Foto allegate</strong>
+                                    </td>
+                                    <td style="padding:14px 12px;color:#334155;
+                                               font-weight:bold;">
+                                        ${attachments.length} ${attachments.length === 1 ? "fotografia" : "fotografie"}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- DESCRIZIONE -->
+                    <tr>
+                        <td style="padding:0 28px 28px;">
+                            <table role="presentation" width="100%"
+                                   cellpadding="0" cellspacing="0" border="0"
+                                   style="background:#f0f9ff;
+                                          border:1px solid #dbeafe;
+                                          border-radius:12px;">
+                                <tr>
+                                    <td style="padding:20px;">
+                                        <h3 style="margin:0 0 12px;
+                                                   color:#1e40af;font-size:16px;">
+                                            📝 Descrizione dell'intervento
+                                        </h3>
+
+                                        <p style="margin:0;color:#334155;
+                                                  font-size:14px;line-height:1.8;
+                                                  white-space:pre-wrap;
+                                                  overflow-wrap:anywhere;">${escapeHtmlPOP(state.descrizionePOP)}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- FOTO -->
+                    <tr>
+                        <td style="padding:0 28px 30px;">
+                            <table role="presentation" width="100%"
+                                   cellpadding="0" cellspacing="0" border="0"
+                                   style="background:#fdf4ff;
+                                          border:1px solid #f5d0fe;
+                                          border-radius:12px;">
+                                <tr>
+                                    <td align="center" style="padding:22px;">
+                                        <div style="font-size:30px;">📸</div>
+                                        <h3 style="margin:10px 0 8px;
+                                                   color:#86198f;font-size:16px;">
+                                            Documentazione fotografica
+                                        </h3>
+                                        <p style="margin:0;color:#6b7280;
+                                                  font-size:13px;line-height:1.7;">
+                                            Sono state ricevute
+                                            <strong>${attachments.length} ${attachments.length === 1 ? "foto" : "foto"}</strong>,
+                                            incluse come allegati a questa email
+                                            per documentare l'intervento.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td align="center"
+                            style="padding:22px 24px;
+                                   background-color:#f8fafc;
+                                   border-top:1px solid #e2e8f0;">
+                            <p style="margin:0 0 6px;color:#64748b;
+                                      font-size:12px;line-height:1.6;">
+                                📡 <strong>Report tecnico intervento POP</strong>
+                            </p>
+                            <p style="margin:0;color:#94a3b8;
+                                      font-size:11px;line-height:1.6;">
+                                Email generata automaticamente dal bot Telegram.
+                                Non rispondere a questo messaggio automatico.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+`;
+
 
         const result = await resend.emails.send({
             from: "onboarding@resend.dev",
             to: "d.garzino@isiline.net",
             subject:
-                `[INTERVENTO POP] ${state.tipoIntervento} - ${state.esitoPOP}`,
+                `📡 Report intervento POP - ${state.locazionePOP} - ${dataIntervento}`,
             html: htmlContent,
             attachments
         });
