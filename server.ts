@@ -338,6 +338,140 @@ async function sendEmailWithData(state: any) {
     }
 }
 
+
+async function sendEmailInterventoPOP(state: any) {
+    try {
+        // Scarico le foto ricevute su Telegram
+        const attachments: any[] = [];
+
+        for (let i = 0; i < (state.foto || []).length; i++) {
+            const buffer = await downloadTelegramFile(state.foto[i]);
+
+            if (buffer) {
+                attachments.push({
+                    filename: `intervento_pop_foto_${i + 1}.jpg`,
+                    content: buffer
+                });
+            }
+        }
+
+        const dataIntervento = new Date().toLocaleString("it-IT", {
+            timeZone: "Europe/Rome",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+        const esitoColor =
+            state.esitoPOP === "POSITIVO" ? "#16a34a" : "#dc2626";
+
+        const htmlContent = `
+        <div style="background:#f3f4f6;padding:30px 10px;
+                    font-family:Arial,Helvetica,sans-serif;">
+            <div style="max-width:650px;margin:0 auto;background:#ffffff;
+                        border-radius:12px;overflow:hidden;
+                        box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+
+                <div style="background:#1f2937;padding:25px;text-align:center;">
+                    <h2 style="color:#ffffff;margin:0;">
+                        REPORT INTERVENTO POP
+                    </h2>
+                    <p style="color:#d1d5db;margin-bottom:0;">
+                        ${dataIntervento}
+                    </p>
+                </div>
+
+                <div style="padding:25px;">
+                    <table width="100%" cellpadding="12"
+                           style="border-collapse:collapse;font-size:14px;">
+                        <tr style="background:#f9fafb;">
+                            <td><strong>Tipo intervento</strong></td>
+                            <td>${escapeHtmlPOP(state.tipoIntervento)}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Esito</strong></td>
+                            <td>
+                                <span style="background:${esitoColor};
+                                    color:white;padding:6px 12px;
+                                    border-radius:20px;font-weight:bold;">
+                                    ${escapeHtmlPOP(state.esitoPOP)}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr style="background:#f9fafb;">
+                            <td><strong>Descrizione</strong></td>
+                            <td>${escapeHtmlPOP(state.descrizionePOP)}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Data e ora</strong></td>
+                            <td>${dataIntervento}</td>
+                        </tr>
+                        <tr style="background:#f9fafb;">
+                            <td><strong>Foto ricevute</strong></td>
+                            <td>${attachments.length}</td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top:25px;padding:18px;
+                                background:#f9fafb;border-radius:8px;">
+                        <strong>Descrizione dell'intervento</strong>
+                        <p style="white-space:pre-wrap;line-height:1.6;">
+                            ${escapeHtmlPOP(state.descrizionePOP)}
+                        </p>
+                    </div>
+
+                    <div style="margin-top:25px;text-align:center;">
+                        <h3 style="color:#111827;">📸 Foto intervento</h3>
+                        <p style="color:#6b7280;font-size:13px;">
+                            Le fotografie sono incluse come allegati alla mail.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="background:#e5e7eb;padding:15px;text-align:center;
+                            color:#6b7280;font-size:12px;">
+                    Email generata automaticamente dal bot Telegram
+                </div>
+            </div>
+        </div>
+        `;
+
+        const result = await resend.emails.send({
+            from: "onboarding@resend.dev",
+            to: "d.garzino@isiline.net",
+            subject:
+                `[INTERVENTO POP] ${state.tipoIntervento} - ${state.esitoPOP}`,
+            html: htmlContent,
+            attachments
+        });
+
+        if (result.error) {
+            console.error("Errore Resend:", result.error);
+            return false;
+        }
+
+        console.log("Email intervento POP inviata con successo!");
+        return true;
+
+    } catch (error) {
+        console.error("Errore invio email intervento POP:", error);
+        return false;
+    }
+}
+
+// Protegge il contenuto HTML dai caratteri speciali
+function escapeHtmlPOP(value: any): string {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
 async function sendEmailWithDataAttivazione(state: any) {
 
     try {
@@ -925,6 +1059,13 @@ async function handleTelegramUpdate(update: any) {
                 "preverifica": undefined,
                 "attivazione": undefined,
                 "rimozione": undefined,
+                "intervento_pop": undefined,
+
+                "pop_manutenzione": ["pop_tipo"],
+                "pop_guasto": ["pop_tipo"],
+                "pop_positivo": ["pop_esito"],
+                "pop_negativo": ["pop_esito"],
+                "pop_fine_foto": ["pop_foto"],
 
                 "comino_graziano": ["tipo_selezione"],
                 "bf_impianti": ["tipo_selezione"],
@@ -1110,6 +1251,112 @@ async function handleTelegramUpdate(update: any) {
                 });
             }
 
+            // INTERVENTO POP - AVVIO
+            else if (data === "intervento_pop") {
+                if (!AUTHORIZED_USERS.includes(chatId)) {
+                    await sendTelegramMessage(
+                        chatId,
+                        "⛔ Non sei abilitato per questa operazione."
+                    );
+                    return;
+                }
+
+                state.tipo = "INTERVENTO POP";
+                state.step = "pop_tipo";
+
+                await disableButton(
+                    callbackQuery.message.message_id,
+                    chatId,
+                    "intervento_pop"
+                );
+
+                await sendTelegramMessage(chatId, "Seleziona il tipo di intervento:", {
+                    inline_keyboard: [
+                        [{ text: "MANUTENZIONE", callback_data: "pop_manutenzione" }],
+                        [{ text: "GUASTO", callback_data: "pop_guasto" }]
+                    ]
+                });
+            }
+
+            // SCELTA MANUTENZIONE O GUASTO
+            else if (data === "pop_manutenzione" || data === "pop_guasto") {
+                state.tipoIntervento =
+                    data === "pop_manutenzione" ? "MANUTENZIONE" : "GUASTO";
+
+                state.step = "pop_esito";
+
+                await disableButton(
+                    callbackQuery.message.message_id,
+                    chatId,
+                    data
+                );
+
+                await sendTelegramMessage(chatId, "Qual è l'esito dell'intervento?", {
+                    inline_keyboard: [
+                        [{ text: "POSITIVO", callback_data: "pop_positivo" }],
+                        [{ text: "NEGATIVO", callback_data: "pop_negativo" }]
+                    ]
+                });
+            }
+
+            // SCELTA ESITO
+            else if (data === "pop_positivo" || data === "pop_negativo") {
+                state.esitoPOP =
+                    data === "pop_positivo" ? "POSITIVO" : "NEGATIVO";
+
+                state.step = "pop_descrizione";
+
+                await disableButton(
+                    callbackQuery.message.message_id,
+                    chatId,
+                    data
+                );
+
+                await sendTelegramMessage(
+                    chatId,
+                    "Che tipo di intervento hai eseguito? Descrivilo e invia il messaggio."
+                );
+            }
+
+            // FINE FOTO
+
+            else if (data === "pop_fine_foto") {
+                if (!state.foto || state.foto.length < 3) {
+                    await sendTelegramMessage(
+                        chatId,
+                        `⚠️ Hai inviato ${state.foto?.length ?? 0} foto. Ne servono almeno 3 per terminare.`
+                    );
+                    return;
+                }
+
+                state.step = "pop_completato";
+
+                const emailInviata = await sendEmailInterventoPOP(state);
+
+                if (emailInviata) {
+                    await sendTelegramMessage(
+                        chatId,
+                        `✅ Intervento POP completato!\n\n` +
+                        `Tipo: ${state.tipoIntervento}\n` +
+                        `Esito: ${state.esitoPOP}\n` +
+                        `Descrizione: ${state.descrizionePOP}\n` +
+                        `Foto ricevute: ${state.foto.length}\n\n` +
+                        `📧 Email inviata correttamente.`
+                    );
+
+                    delete userStates[chatId];
+                } else {
+                    state.step = "pop_foto";
+
+                    await sendTelegramMessage(
+                        chatId,
+                        "⚠️ Intervento raccolto, ma invio email non riuscito.\n" +
+                        "Riprova a terminare la procedura con FINE FOTO."
+                    );
+                }
+            }
+
+
             return;
         }
 
@@ -1129,7 +1376,8 @@ async function handleTelegramUpdate(update: any) {
                     inline_keyboard: [
                         [{ text: "PREVERIFICA", callback_data: "preverifica" }],
                         [{ text: "ATTIVAZIONE", callback_data: "attivazione" }],
-                        [{ text: "RIMOZIONE", callback_data: "rimozione" }]
+                        [{ text: "RIMOZIONE", callback_data: "rimozione" }],
+                        [{ text: "INTERVENTO POP", callback_data: "intervento_pop" }]
                     ]
                 }
             });
@@ -1146,6 +1394,30 @@ async function handleTelegramUpdate(update: any) {
             await sendTelegramMessage(
                 chatId,
                 "Inserisci il seriale TS:"
+            );
+            return;
+        }
+
+        if (state.step === "pop_descrizione" && text) {
+            const descrizione = text.trim();
+
+            if (descrizione.length < 5) {
+                await sendTelegramMessage(
+                    chatId,
+                    "⚠️ Inserisci una descrizione di almeno 5 caratteri."
+                );
+                return;
+            }
+
+            state.descrizionePOP = descrizione;
+            state.foto = [];
+            state.fotoCount = 0;
+            state.step = "pop_foto";
+
+            await sendTelegramMessage(
+                chatId,
+                "📸 Invia almeno 3 foto dell'intervento.\n" +
+                "Puoi inviarne quante ne vuoi. Quando hai finito, premi FINE FOTO."
             );
             return;
         }
@@ -1367,6 +1639,33 @@ async function handleTelegramUpdate(update: any) {
 
                 delete userStates[chatId];
             }
+
+            return;
+        }
+
+        // INTERVENTO POP - FOTO
+        if (state.step === "pop_foto" && update.message.photo) {
+            const photos = update.message.photo;
+            const largestPhoto = photos[photos.length - 1];
+            const fileId = largestPhoto.file_id;
+
+            if (!state.foto.includes(fileId)) {
+                state.foto.push(fileId);
+                state.fotoCount = state.foto.length;
+            }
+
+            await sendTelegramMessage(
+                chatId,
+                `📸 Foto ricevute: ${state.fotoCount}\n` +
+                (state.fotoCount < 3
+                    ? `Te ne servono ancora ${3 - state.fotoCount}.`
+                    : "Hai raggiunto il minimo. Puoi inviarne altre oppure terminare."),
+                {
+                    inline_keyboard: [
+                        [{ text: "FINE FOTO", callback_data: "pop_fine_foto" }]
+                    ]
+                }
+            );
 
             return;
         }
@@ -1840,7 +2139,7 @@ app.get("/api/filtroLocazione", async (req, res) => {
                 $project: {
                     _id: 0,
                     locazione: "$seriali.locazione",
-                    codice_seriale: "$seriali.codice_seriale",  
+                    codice_seriale: "$seriali.codice_seriale",
                     articolo: "$seriali.articolo",
                     anagrafica: "$seriali.anagrafica",
                     note: "$seriali.note",
