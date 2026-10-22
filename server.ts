@@ -388,6 +388,12 @@ async function sendEmailInterventoPOP(state: any) {
                             <td><strong>Tipo intervento</strong></td>
                             <td>${escapeHtmlPOP(state.tipoIntervento)}</td>
                         </tr>
+                        
+                        <tr>
+                            <td><strong>Locazione POP</strong></td>
+                            <td>${escapeHtmlPOP(state.locazionePOP)}</td>
+                        </tr>
+
                         <tr>
                             <td><strong>Esito</strong></td>
                             <td>
@@ -1297,12 +1303,14 @@ async function handleTelegramUpdate(update: any) {
                 });
             }
 
+
             // SCELTA ESITO
             else if (data === "pop_positivo" || data === "pop_negativo") {
                 state.esitoPOP =
                     data === "pop_positivo" ? "POSITIVO" : "NEGATIVO";
 
-                state.step = "pop_descrizione";
+                // Nuovo passaggio: richiesta locazione POP
+                state.step = "pop_locazione";
 
                 await disableButton(
                     callbackQuery.message.message_id,
@@ -1312,9 +1320,10 @@ async function handleTelegramUpdate(update: any) {
 
                 await sendTelegramMessage(
                     chatId,
-                    "Che tipo di intervento hai eseguito? Descrivilo e invia il messaggio."
+                    "📍 Inserisci la locazione del POP (nome del POP):"
                 );
             }
+
 
             // FINE FOTO
 
@@ -1393,6 +1402,30 @@ async function handleTelegramUpdate(update: any) {
                 chatId,
                 "Inserisci il seriale TS:"
             );
+            return;
+        }
+
+        // INTERVENTO POP - INSERIMENTO LOCAZIONE
+        if (state.step === "pop_locazione" && text) {
+            const locazione = text.trim();
+
+            if (locazione.length < 2) {
+                await sendTelegramMessage(
+                    chatId,
+                    "⚠️ Inserisci un nome POP valido."
+                );
+                return;
+            }
+
+            state.locazionePOP = locazione.toUpperCase();
+            state.step = "pop_descrizione";
+
+            await sendTelegramMessage(
+                chatId,
+                `✅ Locazione POP: ${state.locazionePOP}\n\n` +
+                "Che tipo di intervento hai eseguito? Descrivilo e invia il messaggio."
+            );
+
             return;
         }
 
