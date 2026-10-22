@@ -181,9 +181,7 @@ app.get("/api/momento", async (req, res, next) => {
     res.send("ok");
 });
 
-
-//const resend = new Resend("re_JXkLPj2Q_6ruy2HK5LBSaB1nVD1kvsGYq"); //garzinodavide
-const resend = new Resend("re_CYvEt6oi_8Jr4Z3TGa9wgAjk1y47ZR3SM");  //d.garzino
+const resend = new Resend(process.env.APIRESEND);  //d.garzino
 
 
 async function sendEmailWithData(state: any) {
